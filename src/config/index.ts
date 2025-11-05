@@ -16,7 +16,7 @@ export default {
   email_from: process.env.EMAIL_FROM,
   db_url: process.env.DATABASE_URL,
   db_name: process.env.DB_NAME,
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 7003,
   origin: process.env.ORIGIN || "*",
   super_user_email: process.env.SUPER_USER_EMAIL,
   super_user_password: process.env.SUPER_USER_PASSWORD,

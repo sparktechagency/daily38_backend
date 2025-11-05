@@ -418,6 +418,7 @@ const createPost = async (
     };
   
     const post = await Post.create(jobData);
+    console.log("🚀 ~ createPost ~ post:", post)
     if (!post) {
       throw new ApiError(
         StatusCodes.NOT_ACCEPTABLE,
@@ -1157,10 +1158,33 @@ const cOffer = async (
         for:ifCustomerExist._id,
         content: `You get a offer from ${isUserExist.fullName}`
       })
+      // const notificationForProvider = await Notification.create({
+      //   for:ifCustomerExist._id,        
+      //   notiticationType: "OFFER",
+      //   content: `You get a offer from ${isUserExist.fullName}`,
+      //  data: {
+      //   title: projectName,
+      //   offerId: offer._id,
+      //   image: images[0]
+      // }
+      // })
+
+      
+      const notificationForProvider = await Notification.create({
+        notiticationType: "OFFER",
+        data: {
+          title: projectName,
+          offerId: offer._id,
+          image: isUserExist.profileImage
+        },
+        for:offer.to.toString(),
+        content: `You get a offer from ${isUserExist.fullName}`
+      })
   
       //@ts-ignore
       const io = global.io;
       io.emit(`socket:${isUserExist}`,notification)
+      io.emit(`socket:${offer.to.toString()}`,notificationForProvider)
 
       try {
         if (ifCustomerExist.deviceID) {
@@ -1308,24 +1332,24 @@ const intracatOffer = async(
           isOfferExist.status = OFFER_STATUS.DECLINE;
           await isOfferExist.save();
 
-          const notification = await Notification.create({
+          const notificationFrom = await Notification.create({
             for: isOfferExist.form,
-            content: `Your offer was declined!`
+            content: `Offer was declined!`
           });
   
           //@ts-ignore
           const io = global.io;
-          io.emit(`socket:${notification.for.toString()}`, notification)
+          io.emit(`socket:${notificationFrom.for.toString()}`, notificationFrom)
   
           try {
-            const pushNotificationFor = await User.findById(notification.for)!
-            if (pushNotificationFor.deviceID) {
+            const pushNotificationForFromUser = await User.findById(notificationFrom.for)!
+            if (pushNotificationForFromUser.deviceID) {
               await messageSend({
                 notification: {
-                  title: notification.content,
+                  title: notificationFrom.content,
                   body: `${isOfferExist.description}`
                 },
-                token: pushNotificationFor.deviceID
+                token: pushNotificationForFromUser.deviceID
               });
             }
             
@@ -1374,14 +1398,22 @@ const intracatOffer = async(
       const newArr = user1.myOffer.filter( (e: any) => e !== data.offerId );
       user1.myOffer = newArr;
 
-      const notification = await Notification.create({
+      const notificationForCustomer = await Notification.create({
         for: isUserExist._id != customer._id ? provider._id : customer._id,
+        notiticationType: "COUNTER_OFFER",
         content: isUserExist._id != customer._id ? `${customer.fullName} was decline your offer` : `${provider.fullName} was decline your offer!`
+      });
+
+      const notificationForProvider = await Notification.create({
+        for: isUserExist._id != provider._id ? customer._id : provider._id,
+        notiticationType: "COUNTER_OFFER",
+        content: isUserExist._id != provider._id ? `${provider.fullName} was decline your offer` : `${customer.fullName} was decline your offer!`
       });
 
       //@ts-ignore
       const io = global.io;
-      io.emit(`socket:${notification.for.toString()}`, notification)
+      io.emit(`socket:${notificationForCustomer.for.toString()}`, notificationForCustomer)
+      io.emit(`socket:${notificationForProvider.for.toString()}`, notificationForProvider)
 
       project.offers = project.offers.filter( e => e.toString() == isOfferExist._id.toString() )
       console.log(project.offers)
@@ -1395,16 +1427,24 @@ const intracatOffer = async(
       return { message: "Offer Decline", isDecline: true}
     };
 
-    const notification = await Notification.create({
+    const notificationForCustomer = await Notification.create({
       for: isUserExist._id != customer._id ? provider._id : customer._id,
+      notiticationType: "COUNTER_OFFER",
       content: isUserExist._id != customer._id ? `${customer.fullName} was accept your offer` : `${provider.fullName} was accept your offer now you should pay to confirm your order!`
+    });
+
+    const notificationForProvider = await Notification.create({
+      for: isUserExist._id != provider._id ? customer._id : provider._id,
+      notiticationType: "COUNTER_OFFER",
+      content: isUserExist._id != provider._id ? `${provider.fullName} was accept your offer` : `${customer.fullName} was accept your offer now you should pay to confirm your order!`
     });
 
     //@ts-ignore
     const io = global.io;
-    io.emit(`socket:${notification.for.toString()}`, notification)
+    io.emit(`socket:${notificationForCustomer.for.toString()}`, notificationForCustomer)
+    io.emit(`socket:${notificationForProvider.for.toString()}`, notificationForProvider)
 
-    console.log("Notificaitons -->> ",notification)
+    console.log("Notificaitons -->> ",notificationForCustomer,notificationForProvider)
 
     isOfferExist.status = OFFER_STATUS.APPROVE;
     project.acceptedOffer = isOfferExist._id;
@@ -1413,23 +1453,34 @@ const intracatOffer = async(
     await isOfferExist.save();
 
     try {
-      const pushNotificationFor = await User.findById(notification.for)!
-      if (pushNotificationFor.deviceID) {
+      const pushNotificationForCustomer = await User.findById(notificationForCustomer.for)!
+      if (pushNotificationForCustomer.deviceID) {
         await messageSend({
           notification: {
-            title: notification.content,
+            title: notificationForCustomer.content,
             body: `${isOfferExist.description}`
           },
-          token: pushNotificationFor.deviceID
+          token: pushNotificationForCustomer.deviceID
         });
       }
-      
+      const pushNotificationForProvider = await User.findById(notificationForProvider.for)
+      if (pushNotificationForProvider.deviceID) {
+        await messageSend({
+          notification: {
+            title: notificationForProvider.content,
+            body: `${isOfferExist.description}`
+          },
+          token: pushNotificationForProvider.deviceID
+        });
+      }
     } catch (error) {
       console.log(error)
     }
     return "Offer accepted";
 
 };
+
+
 
 // delete offer
 const deleteOffer = async(

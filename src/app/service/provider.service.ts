@@ -16,6 +16,7 @@ import { OFFER_STATUS } from "../../enums/offer.enum";
 import Chat from "../../model/chat.model";
 import { transfers } from "../router/payment.route";
 import { makeAmountWithFee } from "../../helpers/fee";
+import Post from "../../model/post.model";
 
 const singleOrder = async (
     payload: JwtPayload,
@@ -39,7 +40,7 @@ const singleOrder = async (
     const order = await Order.findById(orderID)
                                 .populate({
                                     path:"offerID",
-                                    populate: "projectID"
+                                    select: "projectID startDate budget"
                                 }) 
                                 .populate("customer","fullName")
                                 .populate({
@@ -59,16 +60,18 @@ const singleOrder = async (
         throw new ApiError(StatusCodes.BAD_GATEWAY,"You are not authorize to access this order")
     };
 
+    const projectDetails = await Post.findById(order.offerID.projectID);
+
     return {
         deliveryRequest: order.deliveryRequest,
         status: order.trackStatus,
         offerID: order.offerID._id,
         customerName: order.customer.fullName,
         totalPrice: order.offerID.budget,
-        projectName: order.offerID.projectID.projectName,
-        projectDescription: order.offerID.projectID.jobDescription,
-        projectImage: order.offerID.projectID.coverImage,
-        projectID: order.offerID.projectID._id,
+        projectName: projectDetails?.projectName || "",
+        projectDescription: projectDetails?.jobDescription || "",
+        projectImage: projectDetails?.coverImage || "",
+        projectID: projectDetails?._id || "",
         startDate: order.offerID.startDate,
         deliveryDate: order.deliveryDate,
         providerName: order.provider.fullName, 
@@ -114,18 +117,24 @@ const AllOrders = async (
     .populate({
         path:"offerID",
         select: "projectID",
-        populate: {
-            path:"projectID",
-            select:"projectName jobDescription coverImage"
-        }
+        // populate: {
+        //     path:"projectID",
+        //     select:"projectName jobDescription coverImage"
+        // }
     })
     .select("offerID")
     .sort({ createdAt: -1 });
 
-    const formetedData = paginatedOrders.map( ( e:any )=> ({
-        project:e.offerID.projectID,
-        id: e._id
-    }))
+   const formetedData = await Promise.all(
+        paginatedOrders.map(async (e: any) => {
+            const project = await Post.findById(e.offerID.projectID);
+            return {
+            project,
+            id: e._id,
+            };
+        })
+        );
+
 
   return {
     data: formetedData,
@@ -289,7 +298,17 @@ const deliveryRequest = async (
 ) => {
     const {userID} = payload;
     const { orderID, uploatedProject, projectDoc} = data;
-    const isOrderExist = await Order.findOne({_id: orderID}).populate("offerID");
+    const isOrderExist = await Order.findOne({_id: orderID}).populate({
+        path:"offerID",
+        select: "projectID"
+    });
+    const project = await Post.findById(isOrderExist.offerID.projectID).select("location");
+    if (!project) {
+        throw new ApiError(
+            StatusCodes.NOT_FOUND,
+            "Project not exist!"
+        )
+    };
     const isUserExist = await User.findOne({_id: userID});
     if (!isUserExist) {
         throw new ApiError(
@@ -322,20 +341,30 @@ const deliveryRequest = async (
     const delivaryData = 
         {
             for: isOrderExist.customer,
+            from: isOrderExist.provider,
             orderID,
             projectDoc,
             requestType: REQUEST_TYPE.DELIVERY,
             uploatedProject,
             pdf,
-            images: image
+            images: image,
+            isValid: false,
+            location: project.location
         }
 
     const delivaryRequest = await DeliveryRequest.create(delivaryData);
 
-    isOrderExist.deliveryRequest.isRequested = true;
-    isOrderExist.deliveryRequest.requestID = delivaryRequest._id;
-
-    await isOrderExist.save();
+    await DeliveryRequest.updateMany({
+        orderID: orderID,
+        from: delivaryRequest.from,
+        for: delivaryRequest.for,
+        _id:{$ne: delivaryRequest._id},
+        isValid: false
+    }, {
+        isValid: true
+    })
+    
+    await Order.updateOne({ _id: isOrderExist._id }, { deliveryRequest: true, requestID: delivaryRequest._id });
 
     const notification = await Notification.create({
         for: isOrderExist.customer,
@@ -351,7 +380,7 @@ const deliveryRequest = async (
     const io = global.io;
     io.emit(`socket:${ isOrderExist.customer }`,notification)
 
-    return delivaryRequest;
+    return 'delivaryRequest';
 
 }
 
@@ -521,7 +550,7 @@ const getDeliveryReqests = async (
             select: "fullName profileImage address"
         }
     })
-    .select("orderID")
+    .select("orderID location")
     .skip(skip)
     .limit(limit)
     .sort({ createdAt: -1 });
@@ -529,9 +558,10 @@ const getDeliveryReqests = async (
     const dataDetails = deliveryRequests.map( (e:any)=> ({
         _id: e._id,
         providerName: e.orderID.provider.fullName,
-        providerAddress: e.orderID.provider.address,
-        providerImage: e.orderID.provider.profileImage,
+        providerAddress: e.location || "",
+        providerImage: e.orderID.provider.profileImage
     }))
+    console.log("dataDetails",dataDetails);
 
     return {
         data: dataDetails,
@@ -546,26 +576,26 @@ const ADeliveryReqest = async (
     requestId: string
 ) => {
     const { userID } = payload;
-    const isExist = await User.findOne({_id: userID});
+    const isExistUser = await User.findOne({_id: userID});
     if (!requestId) {
         throw new ApiError(
             StatusCodes.NOT_ACCEPTABLE,
             "You must give the request id!"
         )
     }
-    if (!isExist) {
+    if (!isExistUser) {
         throw new ApiError(
             StatusCodes.NOT_FOUND,
             "User not exist!"
         )
     };
     if ( 
-        isExist.accountStatus === ACCOUNT_STATUS.DELETE || 
-        isExist.accountStatus === ACCOUNT_STATUS.BLOCK 
+        isExistUser.accountStatus === ACCOUNT_STATUS.DELETE || 
+        isExistUser.accountStatus === ACCOUNT_STATUS.BLOCK 
     ) {
         throw new ApiError(
             StatusCodes.FORBIDDEN,
-            `Your account was ${isExist.accountStatus.toLowerCase()}!`
+            `Your account was ${isExistUser.accountStatus.toLowerCase()}!`
         )
     };
 
@@ -585,10 +615,10 @@ const ADeliveryReqest = async (
     }
 
     const formatedData = {
-        projectName: deliveryRequest.orderID.offerID.projectID.projectName,
-        projectID: deliveryRequest.orderID.offerID.projectID._id,
-        projectDecription: deliveryRequest.orderID.offerID.projectID.jobDescription,
-        projectImage: deliveryRequest.orderID.offerID.projectID.coverImage,
+        projectName: deliveryRequest.orderID.offerID.projectID?.projectName,
+        projectID: deliveryRequest.orderID.offerID.projectID?._id,
+        projectDecription: deliveryRequest.orderID.offerID.projectID?.jobDescription,
+        projectImage: deliveryRequest.orderID.offerID.projectID?.coverImage,
         _id: deliveryRequest._id,
         additionalInfo: deliveryRequest.projectDoc,
         projectLink: deliveryRequest.uploatedProject,

@@ -10,4 +10,7 @@ export interface IDR extends Document {
     pdf: string,
     images: string[],
     requestStatus: string,
+    from: Types.ObjectId,
+    isValid: boolean,
+    location: string
 }

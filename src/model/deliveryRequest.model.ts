@@ -36,6 +36,17 @@ const deliveryRequestSchema = new Schema<IDR>({
     enum: DELIVERY_STATUS,
     default: DELIVERY_STATUS.WATING
   },
+  isValid:{
+    type: Boolean,
+    default: false
+  },
+  from:{
+    type: Schema.Types.ObjectId,
+    ref: "user"
+  },
+  location:{
+    type: String
+  }
 },{
     timestamps: true
 });

@@ -68,7 +68,7 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
   return {
     // deliveryRequest: order.deliveryRequest,
     deliveryRequest: {
-      isRequested: order.deliveryRequest,
+      isRequested: order.deliveryRequest.isRequested,
       requestID: order._id,
     },
     status: order.trackStatus,

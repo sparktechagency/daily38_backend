@@ -1555,7 +1555,7 @@ const intracatOffer = async (
       },
       content:
         isUserExist._id != customer._id
-          ? `Offer has been accepted! Please pay now.`
+          ? `You have accepted the offer. Please complete your payment to proceed.`
           : `${provider.fullName} was accept your offer now you should pay to confirm your order***!`,
     });
 
@@ -1586,7 +1586,7 @@ const intracatOffer = async (
       notiticationType: "NOTIFICATION",
       content:
         isUserExist._id != provider._id
-          ? `${provider.fullName} was accept your offer*****`
+          ? `Your offer has been accepted successfully.`
           : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`,
     });
     io.emit(
@@ -1603,7 +1603,7 @@ const intracatOffer = async (
       },
       content:
         isUserExist._id != customer._id
-          ? `Offer has been accepted! Please pay now.`
+          ? `Offer has been accepted! Please pay now.***`
           : `${provider.fullName} was accept your offer now you should pay to confirm your order***!`,
     });
 
@@ -2629,7 +2629,7 @@ const offerOnPost = async (payload: JwtPayload, data: any) => {
         image: isUserExist.profileImage,
       },
       for: ifCustomerExist._id,
-      content: `You get a offer from ${isUserExist.fullName}#$`,
+      content: `You have received a offer. Please review and respond accordingly.`,
     });
 
     //@ts-ignore

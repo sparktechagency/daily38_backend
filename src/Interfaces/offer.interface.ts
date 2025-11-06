@@ -28,5 +28,6 @@ export interface IOffer extends Document {
     typeOfOffer: "offer" | "counter-offer"
     // updatedByAsif
     isDisabled: boolean
-    trackOfferType: TrackOfferType
+    trackOfferType: TrackOfferType,
+    offerId?: Types.ObjectId | null
 }

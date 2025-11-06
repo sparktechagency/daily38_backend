@@ -86,6 +86,10 @@ const offerSchema = new Schema<IOffer>({
     type: String,
     enum: TrackOfferType,
     required: true
+  },
+  offerId:{
+    type: Schema.Types.ObjectId,
+    ref: "offer"
   }
 },{
   timestamps: true

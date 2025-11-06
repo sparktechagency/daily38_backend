@@ -18,6 +18,10 @@ const notificationSchema = new Schema<INotification>({
     type: Boolean,
     default: false
   },
+  originalOfferId: {
+    type: Schema.Types.ObjectId,
+    ref: "offer"
+  },
   data: {
     title: {
       type: String,

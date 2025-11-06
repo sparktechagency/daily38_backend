@@ -1400,7 +1400,8 @@ const intracatOffer = async(
 
      const customerExist = await User.findById(customer._id);
      const providerExist = await User.findById(provider._id);
-
+let notificationForCustomer;
+let notificationForProvider;
 
 
     if ( acction === "DECLINE" ) {
@@ -1411,13 +1412,13 @@ const intracatOffer = async(
       const notificationForCustomer = await Notification.create({
         for: isUserExist._id != customer._id ? provider._id : customer._id,
         notiticationType: "COUNTER_OFFER",
-        content: isUserExist._id != customer._id ? `${customer.fullName} was decline your offer` : `${provider.fullName} was decline your offer!`
+        content: isUserExist._id != customer._id ? `${customer.fullName} was decline your offer////` : `${provider.fullName} was decline your offer****!`
       });
 
       const notificationForProvider = await Notification.create({
         for: isUserExist._id != provider._id ? customer._id : provider._id,
         notiticationType: "COUNTER_OFFER",
-        content: isUserExist._id != provider._id ? `${provider.fullName} was decline your offer` : `${customer.fullName} was decline your offer!`
+        content: isUserExist._id != provider._id ? `${provider.fullName} was decline your offer-*-*-*` : `${customer.fullName} was decline your offer####!`
       });
 
       //@ts-ignore
@@ -1439,51 +1440,47 @@ const intracatOffer = async(
    const io = global.io;
     if(customerExist.role === USER_ROLES.USER){
       console.log('user ===================')
-         const notificationForCustomer = await Notification.create({
-      for: customerExist && customerExist._id ,
-      notiticationType: "OFFER",
-      data: {
-        title: project.projectName,
-        offerId: isOfferExist._id,
-        image: provider.coverImage
-      },
-      content: isUserExist._id != customer._id ? `${customer.fullName} was accept your offer` : `${provider.fullName} was accept your offer now you should pay to confirm your order!`
-    });
+         notificationForCustomer = await Notification.create({
+            for: customerExist && customerExist._id ,
+            notiticationType: "OFFER_REQUEST",
+            data: {
+              postId:project._id
+            },
+            content: isUserExist._id != customer._id ? `Offer has been accepted! Please pay now.` : `${provider.fullName} was accept your offer now you should pay to confirm your order***!`
+      });
  
     io.emit(`socket:${notificationForCustomer.for.toString()}`, notificationForCustomer)
 
     }else{
       console.log('provider ===================')
-       const notificationForProvider = await Notification.create({
-      for: providerExist && providerExist._id,
-      notiticationType: "NOTIFICATION",
-      content: isUserExist._id != provider._id ? `${provider.fullName} was accept your offer` : `${customer.fullName} was accept your offer now you should pay to confirm your order!`
-    });
+       notificationForProvider = await Notification.create({
+          for: providerExist && providerExist._id,
+          notiticationType: "NOTIFICATION",
+          content: isUserExist._id != provider._id ? `${provider.fullName} was accept your offer-----` : `${customer.fullName} was accept your offer now you should pay to confirm your order!!!!`
+        });
     io.emit(`socket:${notificationForProvider.for.toString()}`, notificationForProvider)
 
     }
 
     if(providerExist.role === USER_ROLES.SERVICE_PROVIDER){
       console.log('provider ===================')
-      const notificationForProvider = await Notification.create({
-      for: providerExist && providerExist._id,
-      notiticationType: "NOTIFICATION",
-      content: isUserExist._id != provider._id ? `${provider.fullName} was accept your offer` : `${customer.fullName} was accept your offer now you should pay to confirm your order!`
+      notificationForProvider = await Notification.create({
+          for: providerExist && providerExist._id,
+          notiticationType: "NOTIFICATION",
+          content: isUserExist._id != provider._id ? `${provider.fullName} was accept your offer*****` : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`
     });
     io.emit(`socket:${notificationForProvider.for.toString()}`, notificationForProvider)
 
     }else{
       console.log('user ===================down')
-       const notificationForCustomer = await Notification.create({
-      for: customerExist && customerExist._id ,
-      notiticationType: "OFFER",
-      data: {
-        title: project.projectName,
-        offerId: isOfferExist._id,
-        image: provider.coverImage
-      },
-      content: isUserExist._id != customer._id ? `${customer.fullName} was accept your offer` : `${provider.fullName} was accept your offer now you should pay to confirm your order!`
-    });
+         notificationForCustomer = await Notification.create({
+            for: customerExist && customerExist._id ,
+            notiticationType: "OFFER_REQUEST",
+            data: {
+              postId:project._id
+            },
+            content: isUserExist._id != customer._id ? `Offer has been accepted! Please pay now.` : `${provider.fullName} was accept your offer now you should pay to confirm your order***!`
+          });
  
     io.emit(`socket:${notificationForCustomer.for.toString()}`, notificationForCustomer)
        
@@ -1492,7 +1489,7 @@ const intracatOffer = async(
 
  
 
-    // console.log("Notificaitons -->> ",notificationForCustomer,notificationForProvider)
+    console.log("Notificaitons -->> ",notificationForCustomer,notificationForProvider)
 
     isOfferExist.status = OFFER_STATUS.APPROVE;
     project.acceptedOffer = isOfferExist._id;

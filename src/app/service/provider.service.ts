@@ -47,6 +47,9 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
     .populate({
       path: "provider",
     })) as any;
+    // updatedByAsif
+  console.log("🚀 ~ singleOrder ~ order:", order?.deliveryRequest)
+  console.log("🚀 ~ singleOrder ~ order._id:", order?._id)
 
   // console.log('order ====================',order)
   if (!order) {

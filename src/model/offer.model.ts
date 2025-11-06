@@ -1,5 +1,5 @@
 import { model, models, Schema } from "mongoose";
-import { IOffer } from "../Interfaces/offer.interface";
+import { IOffer, TrackOfferType } from "../Interfaces/offer.interface";
 import { OFFER_STATUS } from "../enums/offer.enum";
 import e from "express";
 
@@ -76,6 +76,16 @@ const offerSchema = new Schema<IOffer>({
     type: String,
     enum: ["offer","counter-offer"],
     default: "offer"
+  },
+  // updatedByAsif
+  isDisabled:{
+    type: Boolean,
+    default: false
+  },
+  trackOfferType:{
+    type: String,
+    enum: TrackOfferType,
+    required: true
   }
 },{
   timestamps: true

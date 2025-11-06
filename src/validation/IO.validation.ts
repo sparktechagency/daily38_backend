@@ -117,7 +117,8 @@ const offerCreateValidation = z.object({
     deadline: z.string().optional(),
     description: z.string().optional(),
     startDate: z.date().optional(),
-    endDate: z.date().optional()
+    endDate: z.date().optional(),
+    firstOfferId: z.string() // updatedByAsif
   })
 })
 

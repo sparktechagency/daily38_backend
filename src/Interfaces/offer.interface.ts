@@ -1,5 +1,11 @@
 import { Document, Types } from "mongoose";
 
+export enum TrackOfferType {
+    OFFER_ON_POST = "offer_On_Post",
+    COUNTER_OFFER = "counter_offer",
+    DIRECT_OFFER_BY_CUSTOMER = "direct_offer_By_Customer"
+}
+
 export interface IOffer extends Document {
     to: Types.ObjectId;
     form: Types.ObjectId;
@@ -20,4 +26,7 @@ export interface IOffer extends Document {
     description: string;
     companyImages: string[];
     typeOfOffer: "offer" | "counter-offer"
+    // updatedByAsif
+    isDisabled: boolean
+    trackOfferType: TrackOfferType
 }

@@ -22,7 +22,7 @@ import { OFFER_STATUS } from "../../enums/offer.enum";
 import e, { Request, Response } from "express";
 import { RatingModel } from "../../model/Rating.model";
 import Chat from "../../model/chat.model";
-import { IOffer } from "../../Interfaces/offer.interface";
+import { IOffer, TrackOfferType } from "../../Interfaces/offer.interface";
 import Message from "../../model/message.model";
 // import { calculateDistanceInKm } from "../../helpers/calculationCount";
 
@@ -1074,6 +1074,7 @@ const cOffer = async (
       const { userID } = payload;
       const {
         projectName,
+        firstOfferId,
         myBudget,
         category,
         location,
@@ -1145,9 +1146,14 @@ const cOffer = async (
         endDate,
         validFor:validFor,
         companyImages: images,
+        isDisabled: false,
+        trackOfferType: TrackOfferType.DIRECT_OFFER_BY_CUSTOMER, // updatedByAsif
+        firstOfferId
       }
   
       const offer = await Offer.create(offerData);
+
+      
   
       isUserExist.iOffered.push(offer._id);
       ifCustomerExist.myOffer.push(offer._id);
@@ -1492,10 +1498,10 @@ let notificationForProvider;
     console.log("Notificaitons -->> ",notificationForCustomer,notificationForProvider)
 
     isOfferExist.status = OFFER_STATUS.APPROVE;
+    await isOfferExist.save();
     project.acceptedOffer = isOfferExist._id;
     project.deadline = isOfferExist.endDate;
     await project.save();
-    await isOfferExist.save();
 
     try {
       const pushNotificationForCustomer = await User.findById(notificationForCustomer.for)!
@@ -2440,7 +2446,8 @@ if (offerId) {
         endDate,
         validFor,
         projectID: post._id,
-        companyImages
+        companyImages,
+        trackOfferType: TrackOfferType.OFFER_ON_POST
       }
   
       const offer = await Offer.create(offerData);
@@ -2639,7 +2646,8 @@ const doCounter = async (
     form: offer.form,
     status: offer.status,
     deadline: offer.deadline,
-    typeOfOffer: "counter-offer"
+    typeOfOffer: "counter-offer",
+    trackOfferType: TrackOfferType.COUNTER_OFFER
   };
 
   const newOffer = await Offer.create(newOfferData);

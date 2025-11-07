@@ -6,6 +6,7 @@ export interface INotification extends Document {
     notiticationType: "DELIVERY_REQUEST" | "OFFER" | "NOTIFICATION" | "OFFER_REQUEST" | "COUNTER_OFFER";
     isRead: boolean;
     originalOfferId?: Types.ObjectId, // offer
+    requestId?: Types.ObjectId, // deliveryRequest
     data: {
         title: string,// offer
         offerId: Types.ObjectId, // offer

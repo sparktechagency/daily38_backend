@@ -49,7 +49,7 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
     })) as any;
   // updatedByAsif
 
-  // console.log('order ====================',order)
+  // console.log('order ====================',order.deliveryRequest)
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Order not exist!");
   }
@@ -65,13 +65,13 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
 
   return {
     // deliveryRequest: order.deliveryRequest,
-    deliveryRequest: order.deliveryRequest
+    deliveryRequest: order.deliveryRequest.toString() === "true"
       ? {
-          isRequested: order.deliveryRequest,
+          isRequested: true,
           requestID: order._id,
         }
       : {
-          isRequested: order.deliveryRequest.isRequested,
+          isRequested: false,
           requestID: order._id,
         },
     status: order.trackStatus,
@@ -218,7 +218,6 @@ const ACompletedOrder = async (payload: string) => {
       path: "provider",
     })
     .lean()) as any;
-  console.log("🚀 ~ ACompletedOrder ~ order:", order);
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Order not exist!");
   }
@@ -371,10 +370,10 @@ const deliveryRequest = async (
     for: isOrderExist.customer,
     notiticationType: "DELIVERY_REQUEST",
     content: `Got a new delivery request from ${isUserExist.fullName}`,
+    requestId: delivaryRequest._id,
     data: {
       orderId: isOrderExist._id,
       requestId: delivaryRequest._id,
-      offerID: isOrderExist.offerID._id,
     },
   });
 
@@ -683,21 +682,15 @@ const reqestAction = async (
   console.log("🚀 ~ reqestAction ~ order.offerID._id:", order.offerID._id);
   // if order.trackStatus.isComplited.status == true
   // delete all the notifications 🔔 🏃‍♀️‍➡️
-  const notifications_requestID = await Notification.find({
-    "data.requestID": new mongoose.Types.ObjectId(requestID),
+  const notifications_requestId = await Notification.find({
+    requestId: new mongoose.Types.ObjectId(requestID),
   });
-  const notifications_orderID = await Notification.find({
-    "data.requestID": new mongoose.Types.ObjectId(order._id),
+  console.log("🚀 ~ reqestAction ~ notification:", notifications_requestId);
+  await Notification.deleteMany({
+    requestId: new mongoose.Types.ObjectId(requestID),
   });
-  const notifications_offerID = await Notification.find({
-    "data.offerID": new mongoose.Types.ObjectId(order.offerID._id),
-  });
-  console.log("🚀 ~ reqestAction ~ notification:", notifications_requestID);
-  console.log("🚀 ~ reqestAction ~ notification2:", notifications_orderID);
-  console.log("🚀 ~ reqestAction ~ notification3:", notifications_offerID);
-  // await Notification.deleteMany({ "data.requestID": requestID });
   // thorw err
-  throw new Error("tesersdfsdf");
+  // throw new Error("tesersdfsdf");
 
   if (order.trackStatus.isComplited.status == true) {
     throw new ApiError(

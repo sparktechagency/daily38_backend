@@ -22,6 +22,10 @@ const notificationSchema = new Schema<INotification>({
     type: Schema.Types.ObjectId,
     ref: "offer"
   },
+  requestId: {
+    type: Schema.Types.ObjectId,
+    ref: "deliveryRequest"
+  },
   data: {
     title: {
       type: String,

@@ -245,7 +245,7 @@ const ACompletedOrder = async (payload: string) => {
     customerName: order.customer?.fullName,
     projectDoc: delivaryRequest?.projectDoc,
     projectLink: delivaryRequest?.uploatedProject,
-    pdf: delivaryRequest?.uploatedProject,
+    pdf: delivaryRequest?.pdf,
     images: delivaryRequest?.images,
     offerID: order.offerID?._id,
     chatID: isChatExist[0]?._id || null,

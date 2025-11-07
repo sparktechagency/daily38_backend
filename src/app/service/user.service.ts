@@ -1403,6 +1403,8 @@ const intracatOffer = async (
         });
         console.log("🚀 ~ intracatOffer ~ post:", post._id);
         await post.save();
+        
+        isOfferExist.projectID = post._id;
 
         const user1 = await User.findById(isOfferExist.to);
         const user2 = await User.findById(isOfferExist.form);
@@ -1430,7 +1432,6 @@ const intracatOffer = async (
         //   customer = user2;
         //   provider = user1;
         // }
-        // isOfferExist.projectID = post._id;
 
         let customer;
         let provider;

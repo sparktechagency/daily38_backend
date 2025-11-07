@@ -65,10 +65,15 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
 
   return {
     // deliveryRequest: order.deliveryRequest,
-    deliveryRequest: {
-      isRequested: order.deliveryRequest.isRequested,
-      requestID: order._id,
-    },
+    deliveryRequest: order.deliveryRequest
+      ? {
+          isRequested: order.deliveryRequest,
+          requestID: order._id,
+        }
+      : {
+          isRequested: order.deliveryRequest.isRequested,
+          requestID: order._id,
+        },
     status: order.trackStatus,
     offerID: order.offerID._id,
     customerName: order.customer.fullName,
@@ -129,7 +134,7 @@ const AllOrders = async (payload: JwtPayload, params: PaginationParams) => {
 
   const formetedData = await Promise.all(
     paginatedOrders.map(async (e: any) => {
-      const project = await Post.findById(e.offerID.projectID);
+      const project = await Post.findById(e.offerID?.projectID);
       return {
         project,
         id: e._id,
@@ -674,27 +679,32 @@ const reqestAction = async (
   console.log("🚀 ~ reqestAction ~ order:", {
     _id: order._id,
     trackisComplitedStatus: order.trackStatus.isComplited.status,
-  })
-  console.log("🚀 ~ reqestAction ~ order.offerID._id:", order.offerID._id)
+  });
+  console.log("🚀 ~ reqestAction ~ order.offerID._id:", order.offerID._id);
   // if order.trackStatus.isComplited.status == true
   // delete all the notifications 🔔 🏃‍♀️‍➡️
-  const notifications_requestID = await Notification.find({ "data.requestID": new mongoose.Types.ObjectId(requestID) });
-  const notifications_orderID = await Notification.find({ "data.requestID": new mongoose.Types.ObjectId(order._id) });
-  const notifications_offerID = await Notification.find({ "data.offerID": new mongoose.Types.ObjectId(order.offerID._id) });
-  console.log("🚀 ~ reqestAction ~ notification:", notifications_requestID)
-  console.log("🚀 ~ reqestAction ~ notification2:", notifications_orderID)
-  console.log("🚀 ~ reqestAction ~ notification3:", notifications_offerID)
+  const notifications_requestID = await Notification.find({
+    "data.requestID": new mongoose.Types.ObjectId(requestID),
+  });
+  const notifications_orderID = await Notification.find({
+    "data.requestID": new mongoose.Types.ObjectId(order._id),
+  });
+  const notifications_offerID = await Notification.find({
+    "data.offerID": new mongoose.Types.ObjectId(order.offerID._id),
+  });
+  console.log("🚀 ~ reqestAction ~ notification:", notifications_requestID);
+  console.log("🚀 ~ reqestAction ~ notification2:", notifications_orderID);
+  console.log("🚀 ~ reqestAction ~ notification3:", notifications_offerID);
   // await Notification.deleteMany({ "data.requestID": requestID });
   // thorw err
   throw new Error("tesersdfsdf");
-  
+
   if (order.trackStatus.isComplited.status == true) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,
       "Sorry! The delivery request has already been accepted for this order."
     );
   }
-  
 
   const budget = order.offerID.budget;
   const adminAmount = makeAmountWithFee(budget);

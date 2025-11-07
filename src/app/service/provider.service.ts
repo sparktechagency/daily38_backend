@@ -11,7 +11,7 @@ import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
 import Notification from "../../model/notification.model";
 import { DELIVERY_STATUS, REQUEST_TYPE } from "../../enums/delivery.enum";
-import mongoose from "mongoose";
+import mongoose, { Types, Types } from "mongoose";
 import Verification from "../../model/verifyRequest.model";
 import Payment from "../../model/payment.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";
@@ -48,8 +48,6 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
       path: "provider",
     })) as any;
   // updatedByAsif
-  console.log("🚀 ~ singleOrder ~ order:", order?.deliveryRequest);
-  console.log("🚀 ~ singleOrder ~ order._id:", order?._id);
 
   // console.log('order ====================',order)
   if (!order) {
@@ -215,7 +213,7 @@ const ACompletedOrder = async (payload: string) => {
       path: "provider",
     })
     .lean()) as any;
-  console.log("🚀 ~ ACompletedOrder ~ order:", order)
+  console.log("🚀 ~ ACompletedOrder ~ order:", order);
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Order not exist!");
   }
@@ -371,6 +369,7 @@ const deliveryRequest = async (
     data: {
       orderId: isOrderExist._id,
       requestId: delivaryRequest._id,
+      offerID: isOrderExist.offerID._id,
     },
   });
 
@@ -629,6 +628,11 @@ const reqestAction = async (
   if (!isUser) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
   }
+  console.log("🚀 ~ reqestAction ~ who am i:", isUser._id, isUser.role);
+  console.log(`🚀 ~ reqestAction ~ { acction, requestID }:`, {
+    acction,
+    requestID,
+  });
   if (
     isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
     isUser.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -667,6 +671,30 @@ const reqestAction = async (
   const order = await Order.findByIdAndUpdate(delivaryRequest.orderID)
     .populate("provider")
     .populate("offerID");
+  console.log("🚀 ~ reqestAction ~ order:", {
+    _id: order._id,
+    trackisComplitedStatus: order.trackStatus.isComplited.status,
+  })
+  console.log("🚀 ~ reqestAction ~ order.offerID._id:", order.offerID._id)
+  // if order.trackStatus.isComplited.status == true
+  // delete all the notifications 🔔 🏃‍♀️‍➡️
+  const notifications_requestID = await Notification.find({ "data.requestID": new mongoose.Types.ObjectId(requestID) });
+  const notifications_orderID = await Notification.find({ "data.requestID": new mongoose.Types.ObjectId(order._id) });
+  const notifications_offerID = await Notification.find({ "data.offerID": new mongoose.Types.ObjectId(order.offerID._id) });
+  console.log("🚀 ~ reqestAction ~ notification:", notifications_requestID)
+  console.log("🚀 ~ reqestAction ~ notification2:", notifications_orderID)
+  console.log("🚀 ~ reqestAction ~ notification3:", notifications_offerID)
+  // await Notification.deleteMany({ "data.requestID": requestID });
+  // thorw err
+  throw new Error("tesersdfsdf");
+  
+  if (order.trackStatus.isComplited.status == true) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Sorry! The delivery request has already been accepted for this order."
+    );
+  }
+  
 
   const budget = order.offerID.budget;
   const adminAmount = makeAmountWithFee(budget);

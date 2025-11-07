@@ -181,20 +181,25 @@ const AllCompletedOrders = async (
     .populate({
       path: "offerID",
       select: "projectID",
-      populate: {
-        path: "projectID",
-        select: "projectName jobDescription coverImage",
-      },
+      // populate: {
+      //   path: "projectID",
+      //   select: "projectName jobDescription coverImage",
+      // },
     })
     .select("offerID")
     .skip(skip)
     .limit(limit)
     .lean();
 
-  const formetedData = orders.map((e: any) => ({
-    project: e.offerID.projectID,
-    id: e._id,
-  }));
+  const formetedData = await Promise.all(
+    orders.map(async (e: any) => {
+      const project = await Post.findById(e.offerID.projectID);
+      return {
+        project,
+        id: e._id,
+      };
+    })
+  );
 
   return { data: formetedData };
 };
@@ -203,16 +208,19 @@ const ACompletedOrder = async (payload: string) => {
   const order = (await Order.findById(new mongoose.Types.ObjectId(payload))
     .populate({
       path: "offerID",
-      populate: "projectID",
+      // populate: "projectID",
     })
     .populate("customer", "fullName")
     .populate({
       path: "provider",
     })
     .lean()) as any;
+  console.log("🚀 ~ ACompletedOrder ~ order:", order)
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Order not exist!");
   }
+
+  const project = await Post.findById(order.offerID.projectID);
 
   const delivaryRequest = await DeliveryRequest.findOne({
     orderID: order._id,
@@ -224,10 +232,10 @@ const ACompletedOrder = async (payload: string) => {
 
   return {
     totalPrice: order.offerID?.budget,
-    projectName: order.offerID?.projectID?.projectName,
-    projectDescription: order.offerID?.projectID?.jobDescription,
-    projectImage: order.offerID?.projectID?.coverImage,
-    projectID: order.offerID?.projectID?._id,
+    projectName: project?.projectName,
+    projectDescription: project?.jobDescription,
+    projectImage: project?.coverImage,
+    projectID: project?._id,
     startDate: order.offerID?.startDate,
     deliveryDate: order.deliveryDate,
     providerName: order.provider?.fullName,
@@ -697,7 +705,7 @@ const reqestAction = async (
   );
 
   await transfers.create({
-    amount: amountAfterFee,
+    amount: Math.round(amountAfterFee),
     currency: "usd",
     destination: order.provider.paymentCartDetails,
     transfer_group: `order_${order._id}`,

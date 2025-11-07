@@ -24,6 +24,7 @@ export interface IPost extends Document {
     feedback?: string;
     from: Types.ObjectId;
   }[];
+  isPaid: boolean
 }
 
 

@@ -213,8 +213,11 @@ const PaymentVerify = catchAsync(
             )
         };
         const post = await Post.findById(offer.projectID);
-        if(post){post.isOnProject = true;
-        await post?.save()}
+        if(post){
+            post.isOnProject = true;
+            post.isPaid = true;
+            await post?.save()
+    }
 
         offer.status = OFFER_STATUS.PAID;
         await offer.save();

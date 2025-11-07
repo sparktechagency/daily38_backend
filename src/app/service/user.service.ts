@@ -1485,7 +1485,6 @@ const intracatOffer = async (
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not founded!");
     }
   }
-  throw new Error("test");
 
   
   if (isOfferExist.status === "APPROVE") {
@@ -2209,7 +2208,7 @@ const getPostsOrProviders = async ({
       return filtered;
     }
 
-    const queryFilters: any = {};
+    const queryFilters: any = { isPaid: false };
 
     if (category) {
       queryFilters.category = category;

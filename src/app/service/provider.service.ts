@@ -47,9 +47,9 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
     .populate({
       path: "provider",
     })) as any;
-    // updatedByAsif
-  console.log("🚀 ~ singleOrder ~ order:", order?.deliveryRequest)
-  console.log("🚀 ~ singleOrder ~ order._id:", order?._id)
+  // updatedByAsif
+  console.log("🚀 ~ singleOrder ~ order:", order?.deliveryRequest);
+  console.log("🚀 ~ singleOrder ~ order._id:", order?._id);
 
   // console.log('order ====================',order)
   if (!order) {
@@ -172,8 +172,11 @@ const AllCompletedOrders = async (
   }
 
   const orders = await Order.find({
-    $or: [{ customer: userID }, { provider: userID }],
-    "trackStatus.isComplited": true,
+    $or: [
+      { customer: new mongoose.Types.ObjectId(userID) },
+      { provider: new mongoose.Types.ObjectId(userID) },
+    ],
+    "trackStatus.isComplited.status": true,
   })
     .populate({
       path: "offerID",
@@ -216,25 +219,25 @@ const ACompletedOrder = async (payload: string) => {
   });
 
   const isChatExist = await Chat.find({
-    users: { $all: [order.customer._id, order.provider._id] },
+    users: { $all: [order.customer?._id, order.provider?._id] },
   });
 
   return {
-    totalPrice: order.offerID.budget,
-    projectName: order.offerID.projectID.projectName,
-    projectDescription: order.offerID.projectID.jobDescription,
-    projectImage: order.offerID.projectID.coverImage,
-    projectID: order.offerID.projectID._id,
-    startDate: order.offerID.startDate,
+    totalPrice: order.offerID?.budget,
+    projectName: order.offerID?.projectID?.projectName,
+    projectDescription: order.offerID?.projectID?.jobDescription,
+    projectImage: order.offerID?.projectID?.coverImage,
+    projectID: order.offerID?.projectID?._id,
+    startDate: order.offerID?.startDate,
     deliveryDate: order.deliveryDate,
-    providerName: order.provider.fullName,
-    providerID: order.provider._id,
-    customerName: order.customer.fullName,
-    projectDoc: delivaryRequest.projectDoc,
-    projectLink: delivaryRequest.uploatedProject,
-    pdf: delivaryRequest.uploatedProject,
-    images: delivaryRequest.images,
-    offerID: order.offerID._id,
+    providerName: order.provider?.fullName,
+    providerID: order.provider?._id,
+    customerName: order.customer?.fullName,
+    projectDoc: delivaryRequest?.projectDoc,
+    projectLink: delivaryRequest?.uploatedProject,
+    pdf: delivaryRequest?.uploatedProject,
+    images: delivaryRequest?.images,
+    offerID: order.offerID?._id,
     chatID: isChatExist[0]?._id || null,
   };
 };
@@ -658,8 +661,16 @@ const reqestAction = async (
     .populate("offerID");
 
   const budget = order.offerID.budget;
+  const adminAmount = makeAmountWithFee(budget);
 
-  const amountAfterFee = (makeAmountWithFee(budget) - budget) * 100;
+  if (adminAmount > budget) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      " adminAmount is less than budget!"
+    );
+  }
+
+  const amountAfterFee = (budget - adminAmount) * 100;
 
   if (!order.provider.paymentCartDetails) {
     throw new ApiError(

@@ -472,7 +472,7 @@ const createPost = async (
     };
 
     const post = await Post.create(jobData);
-    
+
     if (!post) {
       throw new ApiError(
         StatusCodes.NOT_ACCEPTABLE,
@@ -481,6 +481,7 @@ const createPost = async (
     }
 
     isUserExist.job.push(post._id as Types.ObjectId);
+    console.log("🚀 ~ createPost ~ isUserExist.job:", isUserExist.job);
     await isUserExist.save();
 
     return post;
@@ -680,6 +681,8 @@ const deleteJob = async (payload: JwtPayload, Data: { postID: string }) => {
   }
 
   const hasJob = isUserExist.job.includes(postID);
+  console.log("🚀 ~ deleteJob ~ isUserExist.job:", isUserExist.job);
+  console.log("🚀 ~ deleteJob ~ postID:", postID);
   if (!hasJob) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -699,8 +702,22 @@ const deleteJob = async (payload: JwtPayload, Data: { postID: string }) => {
   isUserExist.job = isUserExist.job.filter((e: any) => e.toString() !== postID);
   await isUserExist.save();
 
-  post.isDeleted = true;
-  await post.save();
+  // post.isDeleted = true;
+  // post.isOfferApproved = false;
+  // await post.save();
+
+  // hard delete
+  await post.deleteOne();
+
+  // delete notifications
+  await Notification.deleteMany({
+    "data.postId": post._id,
+  });
+
+  // delete offers
+  await Offer.deleteMany({
+    projectID: post._id,
+  });
 
   return true;
 };
@@ -1076,10 +1093,8 @@ const iOfferd = async (payload: JwtPayload, page = 1, limit = 10, sort = 0) => {
 //get a Offer
 const getAOffer = async (payload: JwtPayload, offerId: string) => {
   const { userID } = payload;
-  
+
   const isUserExist = await User.findById(userID);
-  
-  
 
   const iOffer = isUserExist.iOffered.filter(
     (e: any) => e._id.toString() === offerId
@@ -1309,17 +1324,19 @@ const intracatOffer = async (
   const { userID } = payload;
   const { acction, offerId } = data;
   const isUserExist = await User.findById(userID);
-  console.log("🚀 ~ who am i???????????????????????:", isUserExist.role)
-  console.log("🚀 ~ intracatOffer ~ { acction, offerId }**:", { acction, offerId })
+  console.log("🚀 ~ who am i???????????????????????:", isUserExist.role);
+  console.log("🚀 ~ intracatOffer ~ { acction, offerId }**:", {
+    acction,
+    offerId,
+  });
   const isOfferExist = await Offer.findById(offerId);
   if (!isOfferExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not founded");
   }
-  
+
   const project = await Post.findById(isOfferExist.projectID);
   if (!project) {
     if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
-      
       if (data.acction == "APPROVE") {
         if (!isUserExist.paymentCartDetails) {
           throw new ApiError(
@@ -1340,7 +1357,7 @@ const intracatOffer = async (
           creatorID: isOfferExist.form,
           autoCreated: true,
         });
-        console.log("🚀 ~ intracatOffer ~ post:", post._id)
+        console.log("🚀 ~ intracatOffer ~ post:", post._id);
         await post.save();
 
         const user1 = await User.findById(isOfferExist.to);
@@ -1370,25 +1387,27 @@ const intracatOffer = async (
           provider = user1;
         }
 
-        console.log("🚀 ~ intracatOffer ~ customer:", customer.role)
-        console.log("🚀 ~ intracatOffer ~ provider:", provider.role)
+        console.log("🚀 ~ intracatOffer ~ customer:", customer.role);
+        console.log("🚀 ~ intracatOffer ~ provider:", provider.role);
         isOfferExist.projectID = post._id;
-        console.log("🚀 ~ intracatOffer ~ isOfferExist:", isOfferExist._id)
-        
+        console.log("🚀 ~ intracatOffer ~ isOfferExist:", isOfferExist._id);
 
         // get all counter offer if iexists
         const existingCounterOffers = await Offer.find({
           offerId: isOfferExist._id,
           status: OFFER_STATUS.WATING,
         }).select("_id");
-        console.log("🚀 ~ intracatOffer ~ counterOffer:", existingCounterOffers)
+        console.log(
+          "🚀 ~ intracatOffer ~ counterOffer:",
+          existingCounterOffers
+        );
         // delete all ontifiaction for all counter offer then delete all counter offer if exists
         if (existingCounterOffers.length > 0) {
           for (const offer of existingCounterOffers) {
             const notification = await Notification.findOne({
               "data.offerId": offer._id,
             }).select("_id content");
-            console.log("🚀 ~ intracatOffer ~ notification:", notification)
+            console.log("🚀 ~ intracatOffer ~ notification:", notification);
             if (notification) {
               await notification.deleteOne();
             }
@@ -1399,7 +1418,6 @@ const intracatOffer = async (
           });
         }
 
-        
         const notification = new Notification({
           for: post.creatorID,
           originalOfferId: isOfferExist._id,
@@ -1410,9 +1428,8 @@ const intracatOffer = async (
           },
         });
         await notification.save();
-        
-        
-        console.log("🚀 ~ intracatOffer ~ notification:", notification)
+
+        console.log("🚀 ~ intracatOffer ~ notification:", notification);
         //@ts-ignore
         const io = global.io;
         io.emit(`socket:${notification.for.toString()}`, notification);
@@ -1486,7 +1503,6 @@ const intracatOffer = async (
     }
   }
 
-  
   if (isOfferExist.status === "APPROVE") {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer already accepted!");
   }
@@ -1569,14 +1585,16 @@ const intracatOffer = async (
 
     await user1.save();
     await isOfferExist.deleteOne();
-    
+
     await Notification.deleteMany({
-      originalOfferId: isOfferExist.offerId ? isOfferExist.offerId : isOfferExist._id
+      originalOfferId: isOfferExist.offerId
+        ? isOfferExist.offerId
+        : isOfferExist._id,
     });
     return { message: "Offer Decline", isDecline: true };
   }
 
-  console.log("console 0 ******************")
+  console.log("console 0 ******************");
   const io = global.io;
   if (customerExist.role === USER_ROLES.USER) {
     console.log("user ===================");
@@ -1646,45 +1664,52 @@ const intracatOffer = async (
     );
   }
 
-  
   console.log(
     "Notificaitons -->> ",
     notificationForCustomer,
     notificationForProvider
   );
 
-  console.log("console 1 ******************")
+  console.log("console 1 ******************");
 
   isOfferExist.status = OFFER_STATUS.APPROVE;
   await isOfferExist.save();
   // project.acceptedOffer = isOfferExist._id;
   // project.deadline = isOfferExist.endDate;
   // await project.save();
-  await Post.updateOne({ _id: project._id }, { acceptedOffer: isOfferExist._id, deadline: isOfferExist.endDate });
+  await Post.updateOne(
+    { _id: project._id },
+    {
+      acceptedOffer: isOfferExist._id,
+      deadline: isOfferExist.endDate,
+      isOfferApproved: true, 
+    }
+  );
 
-  console.log("console 2 ******************")
+  console.log("console 2 ******************");
 
   // FOR APPROVING 1ST OFFER NEED TO DELETE ALL THE OFFER HAVING OFFERID AS ISOFFEREXIST._ID
-  // 
+  //
   // if (!isOfferExist.offerId) {
   //   console.log("***************************");
   //   const deleteManyresult3 = await Offer.deleteMany({
   //     offerId: isOfferExist._id,
   //     status: OFFER_STATUS.WATING,
   //   });
-  //   
+  //
   // } else {
   //   console.log("=====================================");
   //   const deleteManyresult4 = await Offer.deleteMany({
   //     offerId: isOfferExist.offerId,
   //     status: OFFER_STATUS.WATING,
   //   });
-  //   
+  //
   // }
-  
-  
+
   await Notification.deleteMany({
-      originalOfferId: isOfferExist.offerId ? isOfferExist.offerId : isOfferExist._id
+    originalOfferId: isOfferExist.offerId
+      ? isOfferExist.offerId
+      : isOfferExist._id,
   });
   try {
     const pushNotificationForCustomer = await User.findById(
@@ -2208,7 +2233,11 @@ const getPostsOrProviders = async ({
       return filtered;
     }
 
-    const queryFilters: any = { isPaid: false };
+    const queryFilters: any = {
+      isPaid: false,
+      isOfferApproved: false,
+      isDeleted: false,
+    }; 
 
     if (category) {
       queryFilters.category = category;
@@ -2775,9 +2804,9 @@ const doCounter = async (
     budget: number;
   }
 ) => {
-  // if (!data.offerId) {
-  //   throw new ApiError(StatusCodes.BAD_REQUEST, "offerId ID is required!");
-  // }
+  if (!data.offerId) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "offerId ID is required!");
+  }
 
   const user = await User.findById(
     new mongoose.Types.ObjectId(payload.userID)
@@ -2801,6 +2830,62 @@ const doCounter = async (
   const offer = await Offer.findById(new mongoose.Types.ObjectId(data.offerId));
   if (!offer) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not found!");
+  }
+  console.log("🚀 ~ doCounter ~ offer:", {
+    offerId: offer._id,
+    trackOfferType: offer.trackOfferType,
+    projectID: offer.projectID,
+    form: offer.form,
+    to: offer.to,    
+  })
+
+  let isMyCounterOfferAlreadyExist;
+  //  if already exist a counter offer from same form, to and for the same project then throww err
+  if (offer.trackOfferType == TrackOfferType.OFFER_ON_POST) {
+     isMyCounterOfferAlreadyExist = await Offer.findOne({
+      to: payload.userID,
+      projectID: offer.projectID,
+      trackOfferType: TrackOfferType.COUNTER_OFFER,
+    });
+    console.log("🚀 ~ doCounter ~ isMyCounterOfferAlreadyExist:OFFER_ON_POST", isMyCounterOfferAlreadyExist)
+  } 
+
+  if (offer.trackOfferType == TrackOfferType.DIRECT_OFFER_BY_CUSTOMER) {
+     isMyCounterOfferAlreadyExist = await Offer.findOne({
+      to: payload.userID,
+      trackOfferType: TrackOfferType.COUNTER_OFFER,
+    });
+    console.log("🚀 ~ doCounter ~ isMyCounterOfferAlreadyExist:DIRECT_OFFER_BY_CUSTOMER", isMyCounterOfferAlreadyExist)
+  }
+
+  
+  // throw new Error("testty");
+  if (
+    isMyCounterOfferAlreadyExist &&
+    isMyCounterOfferAlreadyExist.status == "APPROVE"
+  ) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "You have already sent a counter offer to this customer And offer is already approved!"
+    );
+  }
+  // update if isMyCounterOfferAlreadyExist and not approve
+  if (
+    isMyCounterOfferAlreadyExist &&
+    isMyCounterOfferAlreadyExist.status != "APPROVE"
+  ) {
+    const updatedOffer = await Offer.findByIdAndUpdate(
+      isMyCounterOfferAlreadyExist._id,
+      {
+        $set: {
+          startDate: data.startDate,
+          endDate: data.endDate,
+          validFor: data.validFor,
+          budget: data.budget,
+        },
+      }
+    );
+    return updatedOffer;
   }
 
   let post = await Post.findById(offer.projectID);

@@ -25,6 +25,7 @@ export interface IPost extends Document {
     from: Types.ObjectId;
   }[];
   isPaid: boolean
+  isOfferApproved: boolean
 }
 
 

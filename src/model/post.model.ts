@@ -10,6 +10,10 @@ const jobPostSchema = new Schema<IPost>(
     isDeleted: {
       type: Boolean,
     },
+    isOfferApproved: {
+      type: Boolean,
+      default: false,
+    },
     isPaid: {
       type: Boolean,
       default: false,

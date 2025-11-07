@@ -1330,12 +1330,46 @@ const intracatOffer = async (
     offerId,
   });
   const isOfferExist = await Offer.findById(offerId);
+
   if (!isOfferExist) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not founded");
   }
 
+  const user1 = await User.findById(isOfferExist.to);
+  const user2 = await User.findById(isOfferExist.form);
+  if (!user1 || !user2) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "User not founded");
+  }
+
+  if (
+    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  ) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+    );
+  }
+
+  let customer;
+  let provider;
+  console.log("user1-up", user1?.role); // provider
+  console.log("user2-up", user2?.role); // customer
+  console.log("customer-up", customer);
+  console.log("provider-up", provider);
+
+  if (user1.role === USER_ROLES.USER) {
+    customer = user1;
+    provider = user2;
+  } else if (user2.role === USER_ROLES.USER) {
+    customer = user2;
+    provider = user1;
+  }
+
   const project = await Post.findById(isOfferExist.projectID);
   if (!project) {
+
+    
     if (isUserExist.role == USER_ROLES.SERVICE_PROVIDER) {
       if (data.acction == "APPROVE") {
         if (!isUserExist.paymentCartDetails) {
@@ -1376,8 +1410,24 @@ const intracatOffer = async (
           );
         }
 
+        // let customer;
+        // let provider;
+
+        // if (user1.role === USER_ROLES.USER) {
+        //   customer = user1;
+        //   provider = user2;
+        // } else if (user2.role === USER_ROLES.USER) {
+        //   customer = user2;
+        //   provider = user1;
+        // }
+        // isOfferExist.projectID = post._id;
+
         let customer;
         let provider;
+        console.log("user1-up", user1?.role); // provider
+        console.log("user2-up", user2?.role); // customer
+        console.log("customer-up", customer);
+        console.log("provider-up", provider);
 
         if (user1.role === USER_ROLES.USER) {
           customer = user1;
@@ -1387,20 +1437,14 @@ const intracatOffer = async (
           provider = user1;
         }
 
-        console.log("🚀 ~ intracatOffer ~ customer:", customer.role);
-        console.log("🚀 ~ intracatOffer ~ provider:", provider.role);
-        isOfferExist.projectID = post._id;
-        console.log("🚀 ~ intracatOffer ~ isOfferExist:", isOfferExist._id);
+
+        
 
         // get all counter offer if iexists
         const existingCounterOffers = await Offer.find({
           offerId: isOfferExist._id,
           status: OFFER_STATUS.WATING,
         }).select("_id");
-        console.log(
-          "🚀 ~ intracatOffer ~ counterOffer:",
-          existingCounterOffers
-        );
         // delete all ontifiaction for all counter offer then delete all counter offer if exists
         if (existingCounterOffers.length > 0) {
           for (const offer of existingCounterOffers) {
@@ -1466,37 +1510,102 @@ const intracatOffer = async (
 
         return "Offer accepted";
       } else {
-        isOfferExist.status = OFFER_STATUS.DECLINE;
-        await isOfferExist.save();
+      //   isOfferExist.status = OFFER_STATUS.DECLINE;
+      //   await isOfferExist.save();
 
-        const notificationFrom = await Notification.create({
-          for: isOfferExist.form,
-          originalOfferId: isOfferExist._id,
-          content: `Offer was declined!`,
-        });
+      //   const notificationFrom = await Notification.create({
+      //     for: isOfferExist.form,
+      //     originalOfferId: isOfferExist._id,
+      //     content: `Offer was declined!`,
+      //   });
 
-        //@ts-ignore
-        const io = global.io;
-        io.emit(`socket:${notificationFrom.for.toString()}`, notificationFrom);
+      //   //@ts-ignore
+      //   const io = global.io;
+      //   io.emit(`socket:${notificationFrom.for.toString()}`, notificationFrom);
 
-        try {
-          const pushNotificationForFromUser = await User.findById(
-            notificationFrom.for
-          )!;
-          if (pushNotificationForFromUser.deviceID) {
-            await messageSend({
-              notification: {
-                title: notificationFrom.content,
-                body: `${isOfferExist.description}`,
-              },
-              token: pushNotificationForFromUser.deviceID,
-            });
-          }
-        } catch (error) {
-          console.log(error);
-        }
+      //   try {
+      //     const pushNotificationForFromUser = await User.findById(
+      //       notificationFrom.for
+      //     )!;
+      //     if (pushNotificationForFromUser.deviceID) {
+      //       await messageSend({
+      //         notification: {
+      //           title: notificationFrom.content,
+      //           body: `${isOfferExist.description}`,
+      //         },
+      //         token: pushNotificationForFromUser.deviceID,
+      //       });
+      //     }
+      //   } catch (error) {
+      //     console.log(error);
+      //   }
 
-        return { message: "Offer Decline", isDecline: true };
+      //   return { message: "Offer Decline", isDecline: true };
+      // 
+
+      
+      // 🏃‍♀️‍➡️ handle decline offer
+
+      
+          // isOfferExist.status = "DECLINE"; // 🏃‍♀️‍➡️
+          // delete the offer from myOffer
+          console.log("lets decline =================");
+          const newArr = user1.myOffer.filter((e: any) => e !== data.offerId);
+          user1.myOffer = newArr;
+
+          // delete the  offer
+          const tobeDeleteOffer =isOfferExist;
+          console.log("🚀 ~ intracatOffer ~ tobeDeleteOffer:", tobeDeleteOffer._id)
+          // await Offer.deleteOne({ _id: isOfferExist._id });
+
+          // deletet the notification
+          const toBeDeleteNotification = await Notification.find({
+            "data.offerId": new mongoose.Types.ObjectId(isOfferExist._id),
+          }).select("_id content");
+          console.log("🚀 ~ intracatOffer ~ toBeDeleteNotification:", toBeDeleteNotification)
+          // await Notification.deleteMany({
+          //   "data.offerId": new mongoose.Types.ObjectId(isOfferExist._id),
+          // });
+
+          const notificationForCustomer = await Notification.create({
+            for: isUserExist._id != customer._id ? provider._id : customer._id,
+            notiticationType: "NOTIFICATION",
+            content:
+              isUserExist._id != customer._id
+                ? `${customer.fullName} was decline your offer////`
+                : `${provider.fullName} was decline your offer****!`,
+          });
+
+          const notificationForProvider = await Notification.create({
+            for: isUserExist._id != provider._id ? customer._id : provider._id,
+            notiticationType: "NOTIFICATION",
+            content:
+              isUserExist._id != provider._id
+                ? `${provider.fullName} was decline your offer-*-*-*`
+                : `${customer.fullName} was decline your offer####!`,
+          });
+
+          //@ts-ignore
+          const io = global.io;
+          io.emit(
+            `socket:${notificationForCustomer.for.toString()}`,
+            notificationForCustomer
+          );
+          io.emit(
+            `socket:${notificationForProvider.for.toString()}`,
+            notificationForProvider
+          );
+
+          await user1.save();
+          await isOfferExist.deleteOne();
+
+          await Notification.deleteMany({
+            originalOfferId: isOfferExist.offerId
+              ? isOfferExist.offerId
+              : isOfferExist._id,
+          });
+          return { message: "Offer Decline", isDecline: true };
+        
       }
     } else {
       throw new ApiError(StatusCodes.NOT_FOUND, "Project not founded!");
@@ -1507,36 +1616,36 @@ const intracatOffer = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer already accepted!");
   }
 
-  const user1 = await User.findById(isOfferExist.to);
-  const user2 = await User.findById(isOfferExist.form);
-  if (!user1 || !user2) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "User not founded");
-  }
+  // const user1 = await User.findById(isOfferExist.to);
+  // const user2 = await User.findById(isOfferExist.form);
+  // if (!user1 || !user2) {
+  //   throw new ApiError(StatusCodes.NOT_FOUND, "User not founded");
+  // }
 
-  if (
-    isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
-    isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
-  ) {
-    throw new ApiError(
-      StatusCodes.FORBIDDEN,
-      `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
-    );
-  }
+  // if (
+  //   isUserExist.accountStatus === ACCOUNT_STATUS.DELETE ||
+  //   isUserExist.accountStatus === ACCOUNT_STATUS.BLOCK
+  // ) {
+  //   throw new ApiError(
+  //     StatusCodes.FORBIDDEN,
+  //     `Your account was ${isUserExist.accountStatus.toLowerCase()}!`
+  //   );
+  // }
 
-  let customer;
-  let provider;
-  console.log("user1-up", user1?.role); // provider
-  console.log("user2-up", user2?.role); // customer
-  console.log("customer-up", customer);
-  console.log("provider-up", provider);
+  // let customer;
+  // let provider;
+  // console.log("user1-up", user1?.role); // provider
+  // console.log("user2-up", user2?.role); // customer
+  // console.log("customer-up", customer);
+  // console.log("provider-up", provider);
 
-  if (user1.role === USER_ROLES.USER) {
-    customer = user1;
-    provider = user2;
-  } else if (user2.role === USER_ROLES.USER) {
-    customer = user2;
-    provider = user1;
-  }
+  // if (user1.role === USER_ROLES.USER) {
+  //   customer = user1;
+  //   provider = user2;
+  // } else if (user2.role === USER_ROLES.USER) {
+  //   customer = user2;
+  //   provider = user1;
+  // }
 
   const customerExist = await User.findById(customer._id);
   const providerExist = await User.findById(provider._id);
@@ -1544,9 +1653,19 @@ const intracatOffer = async (
   let notificationForProvider;
 
   if (acction === "DECLINE") {
-    isOfferExist.status = "DECLINE";
+    // isOfferExist.status = "DECLINE"; // 🏃‍♀️‍➡️
+    // delete the offer from myOffer
+    console.log("lets decline =================");
     const newArr = user1.myOffer.filter((e: any) => e !== data.offerId);
     user1.myOffer = newArr;
+
+    // delete the  offer
+    await Offer.deleteOne({ _id: isOfferExist._id });
+
+    // deletet the notification
+    await Notification.deleteMany({
+      "data.offerId": new mongoose.Types.ObjectId(isOfferExist._id),
+    });
 
     const notificationForCustomer = await Notification.create({
       for: isUserExist._id != customer._id ? provider._id : customer._id,
@@ -1682,7 +1801,7 @@ const intracatOffer = async (
     {
       acceptedOffer: isOfferExist._id,
       deadline: isOfferExist.endDate,
-      isOfferApproved: true, 
+      isOfferApproved: true,
     }
   );
 
@@ -2237,7 +2356,7 @@ const getPostsOrProviders = async ({
       isPaid: false,
       isOfferApproved: false,
       isDeleted: false,
-    }; 
+    };
 
     if (category) {
       queryFilters.category = category;
@@ -2836,29 +2955,34 @@ const doCounter = async (
     trackOfferType: offer.trackOfferType,
     projectID: offer.projectID,
     form: offer.form,
-    to: offer.to,    
-  })
+    to: offer.to,
+  });
 
   let isMyCounterOfferAlreadyExist;
   //  if already exist a counter offer from same form, to and for the same project then throww err
   if (offer.trackOfferType == TrackOfferType.OFFER_ON_POST) {
-     isMyCounterOfferAlreadyExist = await Offer.findOne({
+    isMyCounterOfferAlreadyExist = await Offer.findOne({
       to: payload.userID,
       projectID: offer.projectID,
       trackOfferType: TrackOfferType.COUNTER_OFFER,
     });
-    console.log("🚀 ~ doCounter ~ isMyCounterOfferAlreadyExist:OFFER_ON_POST", isMyCounterOfferAlreadyExist)
-  } 
+    console.log(
+      "🚀 ~ doCounter ~ isMyCounterOfferAlreadyExist:OFFER_ON_POST",
+      isMyCounterOfferAlreadyExist
+    );
+  }
 
   if (offer.trackOfferType == TrackOfferType.DIRECT_OFFER_BY_CUSTOMER) {
-     isMyCounterOfferAlreadyExist = await Offer.findOne({
+    isMyCounterOfferAlreadyExist = await Offer.findOne({
       to: payload.userID,
       trackOfferType: TrackOfferType.COUNTER_OFFER,
     });
-    console.log("🚀 ~ doCounter ~ isMyCounterOfferAlreadyExist:DIRECT_OFFER_BY_CUSTOMER", isMyCounterOfferAlreadyExist)
+    console.log(
+      "🚀 ~ doCounter ~ isMyCounterOfferAlreadyExist:DIRECT_OFFER_BY_CUSTOMER",
+      isMyCounterOfferAlreadyExist
+    );
   }
 
-  
   // throw new Error("testty");
   if (
     isMyCounterOfferAlreadyExist &&

@@ -481,7 +481,7 @@ const createPost = async (
     }
 
     isUserExist.job.push(post._id as Types.ObjectId);
-    console.log("🚀 ~ createPost ~ isUserExist.job:", isUserExist.job);
+
     await isUserExist.save();
 
     return post;
@@ -681,8 +681,8 @@ const deleteJob = async (payload: JwtPayload, Data: { postID: string }) => {
   }
 
   // const hasJob = isUserExist.job.includes(postID);
-  // console.log("🚀 ~ deleteJob ~ isUserExist.job:", isUserExist.job);
-  // console.log("🚀 ~ deleteJob ~ postID:", postID);
+  //
+  //
 
   const post = await Post.findById(postID);
   if (!post) {
@@ -1325,15 +1325,6 @@ const intracatOffer = async (
   const { userID } = payload;
   const { acction, offerId } = data;
   const isUserExist = await User.findById(userID);
-  console.log(
-    "🚀 ~ who am i???????????????????????:",
-    isUserExist.role,
-    isUserExist._id
-  );
-  console.log("🚀 ~ intracatOffer ~ { acction, offerId }**:", {
-    acction,
-    offerId,
-  });
   const isOfferExist = await Offer.findById(offerId);
 
   if (!isOfferExist) {
@@ -1401,7 +1392,7 @@ const intracatOffer = async (
           creatorID: isOfferExist.form,
           autoCreated: true,
         });
-        console.log("🚀 ~ intracatOffer ~ post:", post._id);
+
         await post.save();
 
         isOfferExist.projectID = post._id;
@@ -1459,7 +1450,7 @@ const intracatOffer = async (
             const notification = await Notification.findOne({
               "data.offerId": offer._id,
             }).select("_id content");
-            console.log("🚀 ~ intracatOffer ~ notification:", notification);
+
             if (notification) {
               await notification.deleteOne();
             }
@@ -1481,7 +1472,6 @@ const intracatOffer = async (
         });
         await notification.save();
 
-        console.log("🚀 ~ intracatOffer ~ notification:", notification);
         //@ts-ignore
         const io = global.io;
         io.emit(`socket:${notification.for.toString()}`, notification);
@@ -2354,14 +2344,19 @@ const getPostsOrProviders = async ({
       );
 
       let filtered = enriched;
+
       if (hasCoords && hasDist) {
         filtered = enriched.filter((p) => {
-          return (
-            Number.isFinite(p.distance) &&
-            (p.distance as number) <= distN
+          console.log(
+            "🚀 ~ getPostsOrProviders ~ p.location.slice(0, 20),p.distance,distN:-*-*--",
+            p.location.slice(0, 20),
+            p.distance,
+            distN
           );
+          return Number.isFinite(p.distance) && (p.distance as number) <= distN;
         });
       }
+
       return filtered;
     }
 
@@ -2423,12 +2418,11 @@ const getPostsOrProviders = async ({
     );
 
     let filtered = enriched;
+
     if (hasCoords && hasDist) {
-      filtered = enriched.filter(
-        (p) =>
-          Number.isFinite(p.distance) &&
-          (p.distance as number) <= (distN <= 1 ? 10 : distN)
-      );
+      filtered = enriched.filter((p) => {
+        return Number.isFinite(p.distance) && (p.distance as number) <= distN;
+      });
     }
 
     return filtered;
@@ -2472,14 +2466,14 @@ const getPostsOrProviders = async ({
   });
 
   let filteredProviders = withDist;
+
   if (hasCoords && hasDist) {
-    filteredProviders = withDist.filter(
-      (p) =>
-        Number.isFinite(p.distance) &&
-        (p.distance as number) <= (distN <= 1 ? 10 : distN)
-    );
+    filteredProviders = withDist.filter((p) => {
+      return Number.isFinite(p.distance) && (p.distance as number) <= distN;
+    });
   }
 
+  filteredProviders.forEach((p) => {});
   return filteredProviders;
 };
 
@@ -2975,13 +2969,6 @@ const doCounter = async (
   if (!offer) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not found!");
   }
-  console.log("🚀 ~ doCounter ~ offer:", {
-    offerId: offer._id,
-    trackOfferType: offer.trackOfferType,
-    projectID: offer.projectID,
-    form: offer.form,
-    to: offer.to,
-  });
 
   let isMyCounterOfferAlreadyExist;
   //  if already exist a counter offer from same form, to and for the same project then throww err

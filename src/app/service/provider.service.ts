@@ -11,7 +11,7 @@ import Order from "../../model/order.model";
 import DeliveryRequest from "../../model/deliveryRequest.model";
 import Notification from "../../model/notification.model";
 import { DELIVERY_STATUS, REQUEST_TYPE } from "../../enums/delivery.enum";
-import mongoose, { Types, Types } from "mongoose";
+import mongoose from "mongoose";
 import Verification from "../../model/verifyRequest.model";
 import Payment from "../../model/payment.model";
 import { PAYMENT_STATUS } from "../../enums/payment.enum";

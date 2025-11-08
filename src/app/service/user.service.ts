@@ -1901,6 +1901,11 @@ const deleteOffer = async (payload: JwtPayload, offerID: string) => {
     );
   }
 
+  // delete notifications agaisnt this offer
+  await Notification.deleteMany({
+    originalOfferId: offerID,
+  });
+
   const offer = await Offer.findByIdAndDelete(offerID);
 
   if (!offer) {

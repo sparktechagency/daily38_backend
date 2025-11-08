@@ -1403,7 +1403,7 @@ const intracatOffer = async (
         });
         console.log("🚀 ~ intracatOffer ~ post:", post._id);
         await post.save();
-        
+
         isOfferExist.projectID = post._id;
 
         const user1 = await User.findById(isOfferExist.to);
@@ -2344,7 +2344,6 @@ const getPostsOrProviders = async ({
           const dKm = hasCoords
             ? calculateDistanceInKm(latN, lngN, pLat, pLng)
             : undefined;
-
           return {
             ...post,
             isValid: new Date(post.deadline).getTime() > Date.now(),
@@ -2356,13 +2355,13 @@ const getPostsOrProviders = async ({
 
       let filtered = enriched;
       if (hasCoords && hasDist) {
-        filtered = enriched.filter(
-          (p) =>
+        filtered = enriched.filter((p) => {
+          return (
             Number.isFinite(p.distance) &&
-            (p.distance as number) <= (distN <= 1 ? 50 : distN)
-        );
+            (p.distance as number) <= distN
+          );
+        });
       }
-
       return filtered;
     }
 

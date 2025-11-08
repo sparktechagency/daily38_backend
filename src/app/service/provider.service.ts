@@ -681,7 +681,7 @@ const reqestAction = async (
   });
   console.log("🚀 ~ reqestAction ~ order.offerID._id:", order.offerID._id);
   // if order.trackStatus.isComplited.status == true
-  // delete all the notifications 🔔 🏃‍♀️‍➡️
+  // delete all the notifications
   const notifications_requestId = await Notification.find({
     requestId: new mongoose.Types.ObjectId(requestID),
   });

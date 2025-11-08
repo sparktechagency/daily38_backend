@@ -753,8 +753,8 @@ const singlePost = async (payload: JwtPayload, Data: { postID: string }) => {
   const post = await Post.findById(Data.postID)
     .populate({
       path: "acceptedOffer",
-      select:
-        "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
+      // select:
+      //   "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
       populate: {
         path: "form to",
         select: "fullName profileImage",
@@ -796,9 +796,9 @@ const singlePost = async (payload: JwtPayload, Data: { postID: string }) => {
     isOfferPaid: offerStatus?.status == OFFER_STATUS.PAID ? true : false,
     chatID: chat ? chat._id : "", //@ts-ignore
     oppositeUser:
-      post.acceptedOffer?.to?._id?.toString() == isUserExist._id.toString()
-        ? post.acceptedOffer?.form || null
-        : post.acceptedOffer?.to || null,
+      (post.acceptedOffer as any)?.to?._id?.toString() == isUserExist._id.toString()
+        ? (post.acceptedOffer as any)?.form || null
+        : (post.acceptedOffer as any)?.to || null,
   };
 };
 
@@ -1611,7 +1611,7 @@ const intracatOffer = async (
     }
   }
 
-  if (isOfferExist.status === "APPROVE") {
+  if (isOfferExist.status === OFFER_STATUS.DECLINE) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer already accepted!");
   }
 

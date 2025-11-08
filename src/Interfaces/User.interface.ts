@@ -3,7 +3,7 @@ import { Document, Types } from "mongoose";
 export interface IUser extends Document {
     job: Types.ObjectId[];
     orders: Types.ObjectId[];
-    favouriteProvider: Types.ObjectId;
+    favouriteProvider: Types.ObjectId[];
     favouriteServices: Types.ObjectId[];
     iOffered: Types.ObjectId[];
     myOffer: Types.ObjectId[];

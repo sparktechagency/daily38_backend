@@ -1144,6 +1144,7 @@ const allVericifationRequestes = async (
   const verificationRequests = await Verification.find()
     .skip(skip)
     .limit(limit)
+    .populate({ path: 'user', select: 'fullName profileImage email' })
     .sort({ createdAt: -1 });
 
   return {
@@ -1185,6 +1186,7 @@ const intractVerificationRequest = async (
   requestId: string,
   acction: "APPROVE" | "DECLINE"
 ) => {
+  // 🏃‍♀️‍➡️
   const { userID } = payload;
   const isAdmin = await User.findById( userID );
   if (

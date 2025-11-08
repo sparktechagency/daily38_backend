@@ -65,15 +65,16 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
 
   return {
     // deliveryRequest: order.deliveryRequest,
-    deliveryRequest: order.deliveryRequest.toString() === "true"
-      ? {
-          isRequested: true,
-          requestID: order._id,
-        }
-      : {
-          isRequested: false,
-          requestID: order._id,
-        },
+    deliveryRequest:
+      order.deliveryRequest.toString() === "true"
+        ? {
+            isRequested: true,
+            requestID: order._id,
+          }
+        : {
+            isRequested: false,
+            requestID: order._id,
+          },
     status: order.trackStatus,
     offerID: order.offerID._id,
     customerName: order.customer.fullName,
@@ -861,18 +862,27 @@ const providerAccountVerification = async (
   images: string[],
   doc?: string
 ) => {
+  // 🏃‍♀️‍➡️
+  if (!images || images.length < 1) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Please provide at least one image!"
+    );
+  }
   const { userID } = user;
 
   const isUser = await User.findById(userID);
   if (!isUser) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
   }
-
   if (isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.WAITING) {
-    throw new ApiError(
-      StatusCodes.NOT_ACCEPTABLE,
-      "You have already sended a verification request please wait for the response!"
-    );
+    isUser.isVerified.doc = doc || "";
+    isUser.isVerified.images.push(...images);
+    await isUser.save();
+    // throw new ApiError(
+    //   StatusCodes.NOT_ACCEPTABLE,
+    //   "You have already sended a verification request please wait for the response!"
+    // );
   }
 
   if (isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.REJECTED) {
@@ -895,13 +905,6 @@ const providerAccountVerification = async (
     );
   }
 
-  if (!images || images.length < 1) {
-    throw new ApiError(
-      StatusCodes.BAD_GATEWAY,
-      "You should provide all documents!"
-    );
-  }
-
   if (!isUser.isVerified) {
     isUser.isVerified.images = [];
     isUser.isVerified.doc = "";
@@ -909,10 +912,11 @@ const providerAccountVerification = async (
 
   isUser.isVerified.doc = doc;
   isUser.isVerified.images.push(...images);
+  isUser.isVerified.status = ACCOUNT_VERIFICATION_STATUS.WAITING;
 
-  if (isUser.isVerified.trdLicense && isUser.isVerified.images.length > 0) {
-    isUser.isVerified.status = ACCOUNT_VERIFICATION_STATUS.WAITING;
-  }
+  // if (isUser.isVerified.trdLicense && isUser.isVerified.images.length > 0) {
+  //   isUser.isVerified.status = ACCOUNT_VERIFICATION_STATUS.WAITING;
+  // }
 
   await Verification.create({
     user: isUser._id,

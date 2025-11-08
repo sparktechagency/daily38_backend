@@ -1200,7 +1200,7 @@ const intractVerificationRequest = async (
     )
   }
 
-  const request = await Verification.findById(requestId).populate("user");
+  const request = await Verification.findById(requestId).populate("user","fullName");
   if (!request) {
     throw new ApiError(
       StatusCodes.NOT_FOUND,
@@ -1216,7 +1216,7 @@ const intractVerificationRequest = async (
       $set: {
         "isVerified.status": ACCOUNT_VERIFICATION_STATUS.VERIFIED
       }
-    })
+    }) 
     request.status = "verified";
 
     const notification = await Notification.create({
@@ -1233,7 +1233,7 @@ const intractVerificationRequest = async (
         // "isUser.isVerified.images": [],
         // "isUser.isVerified.doc": ""
       }
-    })
+    }) 
     request.status = "rejected";
     
     const notification = await Notification.create({
@@ -1244,7 +1244,7 @@ const intractVerificationRequest = async (
     io.emit(`socket:${ request.user._id }`, notification);
   }
 
-  await request.save();
+  await request.save(); 
 
   return ;
 }

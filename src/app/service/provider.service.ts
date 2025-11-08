@@ -875,19 +875,31 @@ const providerAccountVerification = async (
   if (!isUser) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
   }
+
   if (isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.WAITING) {
     isUser.isVerified.doc = doc || "";
-    isUser.isVerified.images.push(...images);
+    isUser.isVerified.images = [...images];
     await isUser.save();
-    // throw new ApiError(
-    //   StatusCodes.NOT_ACCEPTABLE,
-    //   "You have already sended a verification request please wait for the response!"
-    // );
+
+    // update the verification status
+    await Verification.updateOne(
+      {
+        user: userID,
+      },
+      {
+        doc: doc || "",
+        image: [...images],
+      }
+    );
+    return true;
   }
 
   if (isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.REJECTED) {
     isUser.isVerified.images = [];
     isUser.isVerified.doc = "";
+    await Verification.deleteOne({
+      user: userID,
+    });
   }
 
   if (isUser.isVerified.status == ACCOUNT_VERIFICATION_STATUS.UNVERIFIED) {
@@ -910,8 +922,8 @@ const providerAccountVerification = async (
     isUser.isVerified.doc = "";
   }
 
-  isUser.isVerified.doc = doc;
-  isUser.isVerified.images.push(...images);
+  isUser.isVerified.doc = doc || "";
+  isUser.isVerified.images = [...images];
   isUser.isVerified.status = ACCOUNT_VERIFICATION_STATUS.WAITING;
 
   // if (isUser.isVerified.trdLicense && isUser.isVerified.images.length > 0) {
@@ -920,8 +932,8 @@ const providerAccountVerification = async (
 
   await Verification.create({
     user: isUser._id,
-    doc: doc,
-    image: images,
+    doc: doc || "",
+    image: [...images],
   });
 
   const admins = await User.find({

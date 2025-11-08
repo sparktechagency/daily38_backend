@@ -509,8 +509,8 @@ const allVerifications = catchAsync(
 const intrackWithRequest = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
-        const { action, requestId } = req.body;
-        const result = await AdminService.intractVerificationRequest(Payload,requestId, action)
+        const { acction, requestId } = req.body;
+        const result = await AdminService.intractVerificationRequest(Payload,requestId, acction)
 
         sendResponse(res, {
             success: true,

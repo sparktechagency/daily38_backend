@@ -320,7 +320,8 @@ const allPayments = async (
   payload: JwtPayload,
   params: {
     page: number,
-    limit: number
+    limit: number,
+    status: PAYMENT_STATUS
   }
 ) => {
   const { userID } = payload;
@@ -332,9 +333,9 @@ const allPayments = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
   }
 
-  const total = await Payment.countDocuments();
+  const total = await Payment.countDocuments({ status: params.status ? params.status : {$in: [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.PENDING, PAYMENT_STATUS.FAILED]} });
 
-  const allPayments = await Payment.find({})
+  const allPayments = await Payment.find({ status: params.status ? params.status : {$in: [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.PENDING, PAYMENT_STATUS.FAILED]} })
     .populate("userId","fullName email phone profileImage")
     .populate({
       path: "orderId", 

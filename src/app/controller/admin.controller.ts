@@ -8,6 +8,7 @@ import { getSingleFilePath } from "../../shared/getFilePath";
 import ApiError from "../../errors/ApiError";
 import SubCatagroy from "../../model/subCategory.model";
 import mongoose from "mongoose";
+import { PAYMENT_STATUS } from "../../enums/payment.enum";
 
 const overView = catchAsync(
     async( req: Request, res: Response ) => {
@@ -102,11 +103,11 @@ const payments = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
         const specificUser = req.query.id;
-        const { page, limit }: { page?: any, limit?: any} = req.query;
+        const { page, limit, status }: { page?: any, limit?: any, status?: PAYMENT_STATUS} = req.query;
 
         let result;
         if (!specificUser) {
-            result = await AdminService.allPayments(Payload,{page: Number(page || 1),limit: Number(limit || 10)});
+            result = await AdminService.allPayments(Payload,{page: Number(page || 1),limit: Number(limit || 10), status: status as PAYMENT_STATUS});
         } else if ( specificUser ) {
             result = await AdminService.APayments(Payload,specificUser as string)
         }

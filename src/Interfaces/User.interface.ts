@@ -8,6 +8,7 @@ export interface IUser extends Document {
     iOffered: Types.ObjectId[];
     myOffer: Types.ObjectId[];
     deviceID: string;
+    adminCommissionPercentage: number;
     userVerification: boolean;
     description: string;
     fullName: string;

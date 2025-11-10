@@ -1572,7 +1572,7 @@ const intracatOffer = async (
           notiticationType: "NOTIFICATION",
           content:
             isUserExist._id != customer._id
-              ? `${customer.fullName} was decline your offer////`
+              ? `Offer has been declined`
               : `${provider.fullName} was decline your offer****!`,
         });
 
@@ -1760,7 +1760,15 @@ const intracatOffer = async (
     });
     io.emit(
       `socket:${notificationForProvider.for.toString()}`,
-      notificationForProvider
+      // notificationForProvider
+      {
+      for: providerExist && providerExist._id,
+      notiticationType: "REFRESH",
+      content:
+        isUserExist._id != provider._id
+          ? `Your offer has been accepted successfully.`
+          : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`,
+    }
     );
   } else {
     console.log("user ===================down");

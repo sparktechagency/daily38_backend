@@ -64,6 +64,8 @@ const createSession = async (
         },
     ];
 
+    const adminComission = await makeAmountWithFee(offer.budget);
+
     // Create checkout session
     const session = await checkout.sessions.create({
         payment_method_types: ['card'],
@@ -72,7 +74,7 @@ const createSession = async (
         cancel_url: `${protocol}://${host}/api/v1/payment/cancel`,
         line_items: lineItems,
         metadata: {
-            commission: makeAmountWithFee(offer.budget),
+            commission: adminComission,
             userId: String(userID),
             offerID: String(offer._id.toString()),
         },
@@ -166,7 +168,7 @@ const payoutToUser = async (
 
     // Create transfer to user
     const transfer = await transfers.create({
-        amount: makeAmountWithFee( order.offerID.budget  ) * 100, // Convert to cents
+        amount: await makeAmountWithFee( order.offerID.budget  ) * 100, // Convert to cents
         currency: 'usd',
         destination: user.paymentCartDetails,
     });

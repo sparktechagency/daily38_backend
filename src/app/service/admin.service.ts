@@ -320,7 +320,8 @@ const allPayments = async (
   payload: JwtPayload,
   params: {
     page: number,
-    limit: number
+    limit: number,
+    status: PAYMENT_STATUS
   }
 ) => {
   const { userID } = payload;
@@ -332,9 +333,9 @@ const allPayments = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
   }
 
-  const total = await Payment.countDocuments();
+  const total = await Payment.countDocuments({ status: params.status ? params.status : {$in: [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.PENDING, PAYMENT_STATUS.FAILED]} });
 
-  const allPayments = await Payment.find({})
+  const allPayments = await Payment.find({ status: params.status ? params.status : {$in: [PAYMENT_STATUS.SUCCESS, PAYMENT_STATUS.PENDING, PAYMENT_STATUS.FAILED]} })
     .populate("userId","fullName email phone profileImage")
     .populate({
       path: "orderId", 
@@ -887,6 +888,49 @@ const editeConditions = async (
     return data;
 };
 
+const adminCommission = async () => {
+  
+    const superAdminUser = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!superAdminUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions dose not exist!");
+    }
+
+    return superAdminUser.adminCommissionPercentage;
+};
+
+const editeAdminCommission = async (
+  payload: JwtPayload,
+  data: number
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
+
+    const superAdminUser = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!superAdminUser) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions does not exist!");
+    }
+
+    superAdminUser.adminCommissionPercentage = data;
+    await superAdminUser.save();
+
+    return data;
+};
+
 const allAdmins = async (
   payload: JwtPayload,
   params: PaginationParams
@@ -1274,6 +1318,8 @@ export const AdminService = {
   editePrivacyPolicy,
   conditions,
   editeConditions,
+  adminCommission,
+  editeAdminCommission,
   allAdmins,
   addNewAdmin,
   deleteAdmin,

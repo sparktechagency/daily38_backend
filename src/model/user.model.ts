@@ -146,6 +146,10 @@ const userSchema = new Schema<IUser>({
     type: String,
     trim: true
   },
+  adminCommissionPercentage:{
+    type: Number,
+    default: 5
+  },
   termsConditions:{
     type: String,
     trim: true

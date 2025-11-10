@@ -152,6 +152,18 @@ router
         validateRequest( AdminValidation.updatedtermsConditions ),
         AdminController.editeConditions
     )
+// 🏃‍♀️‍➡️
+router
+    .route("/admin-commission")
+    .get(
+        // auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN, USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        AdminController.adminCommission
+    )
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( AdminValidation.updatedAdminCommission ),
+        AdminController.editeAdminCommission
+    )
 
 router
     .route("/make")

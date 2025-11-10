@@ -887,6 +887,49 @@ const editeConditions = async (
     return data;
 };
 
+const adminCommission = async () => {
+  
+    const termsConditions = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!termsConditions) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions dose not exist!");
+    }
+
+    return termsConditions.adminCommissionPercentage;
+};
+
+const editeAdminCommission = async (
+  payload: JwtPayload,
+  data: number
+) => {
+    const { userID } = payload;
+    const isAdmin = await User.findById(userID);
+    if (!isAdmin) {
+        throw new ApiError(StatusCodes.EXPECTATION_FAILED,"User not founded")
+    }
+    if (!isAdmin || (isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
+        throw new ApiError(StatusCodes.FORBIDDEN, "Access denied. Admin only.");
+    }
+    if (
+      isAdmin.accountStatus === ACCOUNT_STATUS.DELETE ||
+      isAdmin.accountStatus === ACCOUNT_STATUS.BLOCK
+    ) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        `Your account was ${isAdmin.accountStatus.toLowerCase()}!`
+      );
+    }
+
+    const termsConditions = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!termsConditions) {
+        throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions does not exist!");
+    }
+
+    termsConditions.adminCommissionPercentage = data;
+    await termsConditions.save();
+
+    return data;
+};
+
 const allAdmins = async (
   payload: JwtPayload,
   params: PaginationParams
@@ -1274,6 +1317,8 @@ export const AdminService = {
   editePrivacyPolicy,
   conditions,
   editeConditions,
+  adminCommission,
+  editeAdminCommission,
   allAdmins,
   addNewAdmin,
   deleteAdmin,

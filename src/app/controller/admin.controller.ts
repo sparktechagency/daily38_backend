@@ -406,6 +406,35 @@ const editeConditions = catchAsync(
     }
 );
 
+const adminCommission = catchAsync(
+    async( req: Request, res: Response ) => {
+        
+        const result = await AdminService.adminCommission()
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get admin commission",
+            data: result
+        });
+    }
+);
+
+const editeAdminCommission = catchAsync(
+    async( req: Request, res: Response ) => {
+        const Payload = (req as any).user;
+        const data = req.body.adminCommissionPercentage;
+        const result = await AdminService.editeAdminCommission(Payload,data)
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully Update admin commission",
+            data: result
+        });
+    }
+);
+
 const allAdmins = catchAsync(
     async( req: Request, res: Response ) => {
         const Payload = (req as any).user;
@@ -541,6 +570,8 @@ export const AdminController = {
     getPrivacyPolicy,
     editeyPolicy,
     termsAndConditions,
+    adminCommission,
+    editeAdminCommission,
     allAdmins,
     subCatagroy,
     allVerifications,

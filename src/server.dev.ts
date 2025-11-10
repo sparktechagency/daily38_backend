@@ -18,21 +18,21 @@ let server: any;
 async function main() {
   try {
     // await mongoose.connect(`mongodb://localhost:27017/boolbi`)
-    console.log("🚀 ~ main ~ config.db_url_remote:", config.db_url_remote);
+    console.log("server.dev.ts🚀 ~ main ~ config.db_url_remote:", config.db_url_remote);
     await mongoose
       .connect(`${config.db_url_remote}`)
       .then(
         (response) => (
           console.log(
-            colors.green("✅ Your Database was hosted on: ") +
+            colors.green("server.dev.ts ✅ Your Database was hosted on: ") +
               colors.cyan(response.connection.host)
           ),
           console.log(
-            colors.green("✅ Your Database is running on port: ") +
+            colors.green("server.dev.ts ✅ Your Database is running on port: ") +
               colors.yellow(response.connection.port.toString())
           ),
           console.log(
-            colors.green("✅ Your Database name is: ") +
+            colors.green("server.dev.ts ✅ Your Database name is: ") +
               colors.magenta(response.connection.name)
           )
         )
@@ -46,7 +46,7 @@ async function main() {
 
     server = app.listen(port, config.ip_address as string, () => {
       logger.info(
-        colors.yellow(`♻️  Application listening on port:${config.port}`)
+        colors.yellow(`server.dev.ts♻️  Application listening on port:${config.port}`)
       );
     });
 
@@ -61,7 +61,7 @@ async function main() {
     //@ts-ignore
     global.io = io;
   } catch (error) {
-    errorLogger.error(colors.red("🤢 Failed to connect Database"));
+    errorLogger.error(colors.red("server.dev.ts 🤢 Failed to connect Database"));
   }
 
   //handle unhandleRejection

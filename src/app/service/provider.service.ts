@@ -675,7 +675,14 @@ const reqestAction = async (
 
   const order = await Order.findByIdAndUpdate(delivaryRequest.orderID)
     .populate("provider")
-    .populate("offerID");
+    .populate({
+      path: "offerID",
+      select: "budget projectID",
+      populate: {
+        path: "projectID",
+        select: "adminCommissionPercentage",
+      },
+    });
   console.log("🚀 ~ reqestAction ~ order:", {
     _id: order._id,
     trackisComplitedStatus: order.trackStatus.isComplited.status,
@@ -701,7 +708,10 @@ const reqestAction = async (
   }
 
   const budget = order.offerID.budget;
-  const adminAmount = await makeAmountWithFee(budget);
+  const adminAmount = await makeAmountWithFee(
+    Number(budget),
+    (order.offerID.projectID as any).adminCommissionPercentage
+  );
 
   if (adminAmount > budget) {
     throw new ApiError(

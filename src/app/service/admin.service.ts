@@ -925,7 +925,7 @@ const editeAdminCommission = async (
         throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions does not exist!");
     }
 
-    superAdminUser.adminCommissionPercentage = data;
+    superAdminUser.adminCommissionPercentage = Math.ceil(Number(data));
     await superAdminUser.save();
 
     return data;

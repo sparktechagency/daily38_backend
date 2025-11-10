@@ -44,7 +44,7 @@ const createSession = async (
     );
   }
 
-  const offer = await Offer.findById(data.offerID);
+  const offer = await Offer.findById(data.offerID).populate("projectID","adminCommissionPercentage");
   if (!offer) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not founded!");
   }
@@ -71,7 +71,7 @@ const createSession = async (
     },
   ];
 
-  const adminComission = await makeAmountWithFee(offer.budget);
+  const adminComission = await makeAmountWithFee(Number(offer.budget),(offer.projectID as any).adminCommissionPercentage);
 
   // Create checkout session
   const session = await checkout.sessions.create({
@@ -164,7 +164,14 @@ const payoutToUser = async (payload: JwtPayload, orderID: any) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not found!");
   }
 
-  const order = await Order.findById(orderID).populate("offerID", "budget");
+  const order = await Order.findById(orderID).populate({
+    path: "offerID",
+    select: "budget projectID",
+    populate: {
+      path: "projectID",
+      select: "adminCommissionPercentage",
+    },
+  });
   if (!order) {
     throw new ApiError(
       StatusCodes.BAD_GATEWAY,
@@ -186,9 +193,13 @@ const payoutToUser = async (payload: JwtPayload, orderID: any) => {
     );
   }
 
+  const adminAmount = await makeAmountWithFee(Number(order.offerID.budget),(order.offerID.projectID as any).adminCommissionPercentage);
+
+  const providerAmount = Number(order.offerID.budget) - adminAmount;
+
   // Create transfer to user
   const transfer = await transfers.create({
-    amount: (await makeAmountWithFee(order.offerID.budget)) * 100, // Convert to cents
+    amount: providerAmount * 100, // Convert to cents
     currency: "usd",
     destination: user.paymentCartDetails,
   });

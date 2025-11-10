@@ -71,7 +71,8 @@ const createSession = async (
     },
   ];
 
-  const adminComission = await makeAmountWithFee(Number(offer.budget),(offer.projectID as any).adminCommissionPercentage);
+
+  const adminComission = await makeAmountWithFee(Number(offer.budget),(offer.projectID as any)?.adminCommissionPercentage || undefined);
 
   // Create checkout session
   const session = await checkout.sessions.create({

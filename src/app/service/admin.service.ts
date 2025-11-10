@@ -1293,6 +1293,182 @@ const intractVerificationRequest = async (
   return ;
 }
 
+
+// Platform performance and user activity
+const getPlatformPerformance = async (payload: JwtPayload, timeRange: 'day' | 'week' | 'month' | 'year' = 'month') => {
+  const { userID } = payload;
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found!");
+  }
+
+  // Calculate date ranges
+  const now = new Date();
+  let startDate: Date;
+
+  switch (timeRange) {
+    case 'day':
+      startDate = subDays(now, 1);
+      break;
+    case 'week':
+      startDate = subDays(now, 7);
+      break;
+    case 'month':
+      startDate = subDays(now, 30);
+      break;
+    case 'year':
+      startDate = subDays(now, 365);
+      break;
+    default:
+      startDate = subDays(now, 30);
+  }
+
+  // Get most ordered services
+  const mostOrderedServices = await Order.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: startDate }
+      }
+    },
+    {
+      $group: {
+        _id: "$serviceId",
+        count: { $sum: 1 },
+        totalRevenue: { $sum: "$amount" }
+      }
+    },
+    {
+      $lookup: {
+        from: "services",
+        localField: "_id",
+        foreignField: "_id",
+        as: "service"
+      }
+    },
+    { $unwind: "$service" },
+    {
+      $project: {
+        serviceName: "$service.title",
+        orderCount: "$count",
+        totalRevenue: 1,
+        averageOrderValue: { $divide: ["$totalRevenue", "$count"] }
+      }
+    },
+    { $sort: { orderCount: -1 } },
+    { $limit: 10 }
+  ]);
+
+  // Get user activity metrics
+  const userActivity = await User.aggregate([
+    {
+      $match: {
+        createdAt: { $gte: startDate },
+        role: { $in: [USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER] }
+      }
+    },
+    {
+      $group: {
+        _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+        newUsers: { $sum: 1 },
+        activeUsers: {
+          $sum: {
+            $cond: [{ $eq: ["$isActive", true] }, 1, 0]
+          }
+        }
+      }
+    },
+    { $sort: { _id: 1 } }
+  ]);
+
+  return {
+    timeRange,
+    startDate,
+    endDate: now,
+    mostOrderedServices,
+    userActivity
+  };
+};
+
+// Generate insights for popular categories and high-performing providers
+const generateInsights = async (payload: JwtPayload) => {
+  const { userID } = payload;
+  const user = await User.findById(userID);
+  if (!user) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found!");
+  }
+
+  // Get popular categories
+  const popularCategories = await Order.aggregate([
+    {
+      $lookup: {
+        from: "services",
+        localField: "serviceId",
+        foreignField: "_id",
+        as: "service"
+      }
+    },
+    { $unwind: "$service" },
+    {
+      $lookup: {
+        from: "categories",
+        localField: "service.categoryId",
+        foreignField: "_id",
+        as: "category"
+      }
+    },
+    { $unwind: "$category" },
+    {
+      $group: {
+        _id: "$category._id",
+        categoryName: { $first: "$category.name" },
+        orderCount: { $sum: 1 },
+        totalRevenue: { $sum: "$amount" }
+      }
+    },
+    { $sort: { orderCount: -1 } },
+    { $limit: 5 }
+  ]);
+
+  // Get high-performing providers
+  const highPerformingProviders = await Order.aggregate([
+    {
+      $lookup: {
+        from: "services",
+        localField: "serviceId",
+        foreignField: "_id",
+        as: "service"
+      }
+    },
+    { $unwind: "$service" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "service.providerId",
+        foreignField: "_id",
+        as: "provider"
+      }
+    },
+    { $unwind: "$provider" },
+    {
+      $group: {
+        _id: "$provider._id",
+        providerName: { $first: "$provider.fullName" },
+        serviceCount: { $sum: 1 },
+        totalEarnings: { $sum: "$amount" },
+        averageRating: { $avg: "$rating" }
+      }
+    },
+    { $sort: { totalEarnings: -1 } },
+    { $limit: 10 }
+  ]);
+
+  return {
+    popularCategories,
+    highPerformingProviders,
+    generatedAt: new Date()
+  };
+};
+
 export const AdminService = {
   overview,
   engagementData,
@@ -1328,5 +1504,7 @@ export const AdminService = {
   addSubCatagorys,
   deleteSubCatagory,
   updateSubCatagory,
-  allVericifationRequestes
+  allVericifationRequestes,
+  getPlatformPerformance,
+  generateInsights
 }

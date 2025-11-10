@@ -38,6 +38,7 @@ import { RatingModel } from "../../model/Rating.model";
 import Chat from "../../model/chat.model";
 import { IOffer, TrackOfferType } from "../../Interfaces/offer.interface";
 import Message from "../../model/message.model";
+import { AdminService } from "./admin.service";
 // import { calculateDistanceInKm } from "../../helpers/calculationCount";
 
 //User signUp
@@ -689,11 +690,16 @@ const deleteJob = async (payload: JwtPayload, Data: { postID: string }) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
   }
 
-  if (post.creatorID.toString() !== userID.toString()) {
-    throw new ApiError(
-      StatusCodes.NOT_FOUND,
-      "This post is not linked to your account"
-    );
+  if (
+    payload.role !== USER_ROLES.SUPER_ADMIN &&
+    payload.role !== USER_ROLES.ADMIN
+  ) {
+    if (post.creatorID.toString() !== userID.toString()) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "This post is not linked to your account"
+      );
+    }
   }
 
   if (post.showcaseImages && Array.isArray(post.showcaseImages)) {
@@ -1005,7 +1011,7 @@ const offers = async (payload: JwtPayload, page = 1, limit = 10, sort = 0) => {
     status: OFFER_STATUS.WATING,
     typeOfOffer: { $ne: "counter-offer" },
   })
-    .sort({ updatedAt: sort == 0 ? 1 : -1 })
+    .sort(sort == 0 ? '-createdAt' : 'createdAt')
     .limit(limit)
     .skip(skip)
     .populate("projectID", "coverImage showcaseImages projectName")
@@ -1165,7 +1171,15 @@ const getAOffer = async (payload: JwtPayload, offerId: string) => {
     ],
   });
 
+  const projectsAdminCommission = await Post.findById(offer.projectID)
+    .select("adminCommissionPercentage")
+    .lean();
+  let adminCommissionPercentage: number =
+    projectsAdminCommission?.adminCommissionPercentage ||
+    (await AdminService.adminCommission());
+
   return {
+    adminCommissionPercentage,
     ...offer,
     isFavorite,
     chatID: chat?._id ? chat._id : "",
@@ -1762,13 +1776,13 @@ const intracatOffer = async (
       `socket:${notificationForProvider.for.toString()}`,
       // notificationForProvider
       {
-      for: providerExist && providerExist._id,
-      notiticationType: "REFRESH",
-      content:
-        isUserExist._id != provider._id
-          ? `Your offer has been accepted successfully.`
-          : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`,
-    }
+        for: providerExist && providerExist._id,
+        notiticationType: "REFRESH",
+        content:
+          isUserExist._id != provider._id
+            ? `Your offer has been accepted successfully.`
+            : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`,
+      }
     );
   } else {
     console.log("user ===================down");

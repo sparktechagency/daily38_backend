@@ -701,7 +701,7 @@ const reqestAction = async (
   }
 
   const budget = order.offerID.budget;
-  const adminAmount = makeAmountWithFee(budget);
+  const adminAmount = await makeAmountWithFee(budget);
 
   if (adminAmount > budget) {
     throw new ApiError(

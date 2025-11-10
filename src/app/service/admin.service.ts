@@ -889,12 +889,12 @@ const editeConditions = async (
 
 const adminCommission = async () => {
   
-    const termsConditions = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
-    if (!termsConditions) {
+    const superAdminUser = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!superAdminUser) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions dose not exist!");
     }
 
-    return termsConditions.adminCommissionPercentage;
+    return superAdminUser.adminCommissionPercentage;
 };
 
 const editeAdminCommission = async (
@@ -919,13 +919,13 @@ const editeAdminCommission = async (
       );
     }
 
-    const termsConditions = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
-    if (!termsConditions) {
+    const superAdminUser = await User.findOne({role: USER_ROLES.SUPER_ADMIN});
+    if (!superAdminUser) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Terms & Conditions does not exist!");
     }
 
-    termsConditions.adminCommissionPercentage = data;
-    await termsConditions.save();
+    superAdminUser.adminCommissionPercentage = data;
+    await superAdminUser.save();
 
     return data;
 };

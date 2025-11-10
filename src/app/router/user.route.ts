@@ -96,7 +96,7 @@ router
 router
     .route("/post/all")
     .get(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER,USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN ),
         UserController.allPost
     )
 

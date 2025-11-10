@@ -1097,10 +1097,10 @@ const getAOffer = async (payload: JwtPayload, offerId: string) => {
 
   const isUserExist = await User.findById(userID);
 
-  const iOffer = isUserExist.iOffered.filter(
+  const iOffer = isUserExist?.iOffered?.filter(
     (e: any) => e._id.toString() === offerId
   );
-  const myOffers = isUserExist.myOffer.filter(
+  const myOffers = isUserExist?.myOffer?.filter(
     (e: any) => e._id.toString() === offerId
   );
 

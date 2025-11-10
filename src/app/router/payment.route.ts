@@ -45,6 +45,16 @@ router
     )
 
 router
+    .route("/payment-records")
+    .get(
+        auth(
+            USER_ROLES.SERVICE_PROVIDER,
+            USER_ROLES.USER
+        ),
+        PaymentController.PaymentRecords
+    )
+
+router
     .route("/payment-success")
     .get(
         PaymentController.PaymentVerify

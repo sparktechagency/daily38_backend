@@ -2386,6 +2386,8 @@ const getPostsOrProviders = async ({
       isPaid: false,
       isOfferApproved: false,
       isDeleted: false,
+      isBlocked: false,
+      isFlaggedAsInAppropriate: false,
     };
 
     if (category) {
@@ -3116,6 +3118,26 @@ const doCounter = async (
   io.emit(`socket:${providerdata._id}`, notification);
 };
 
+const toggleFlaggedOrBlocked = async (
+  payload: JwtPayload,
+  data: { post_id: string; type: "flagged" | "blocked" }
+) => {
+  const post = await Post.findById(new mongoose.Types.ObjectId(data.post_id));
+  if (!post) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Post not found!");
+  }
+
+  if (data.type == "flagged") {
+    post.isFlaggedAsInAppropriate = !post.isFlaggedAsInAppropriate;
+  } else if (data.type == "blocked") {
+    post.isBlocked = !post.isBlocked;
+  }
+
+  await post.save();
+
+  return post;
+};
+
 export const UserServices = {
   getPostsOrProviders,
   doCounter,
@@ -3155,4 +3177,5 @@ export const UserServices = {
   supportRequest,
   iOfferd,
   getRecommendedPosts,
+  toggleFlaggedOrBlocked
 };

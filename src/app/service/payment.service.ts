@@ -261,9 +261,10 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
 
   const structuredReocrds = records.map((payment) => {
     return {
-      postName: payment.orderId.offerID.projectID?.projectName || "",
-      customerName: payment.orderId.customer?.fullName || "",
-      providerName: payment.orderId.provider?.fullName || "",
+      paymentId: payment._id,
+      postName: payment?.orderId?.offerID?.projectID?.projectName || "",
+      customerName: payment?.orderId?.customer?.fullName || "",
+      providerName: payment?.orderId?.provider?.fullName || "",
       fullPaidAmount: payment.amount,
       commission: payment.commission,
       providerRecievedAmount: payment.amount - payment.commission,

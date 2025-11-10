@@ -89,6 +89,14 @@ const jobPostSchema = new Schema<IPost>(
     adminCommissionPercentage: {
       type: Number,
     },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    isFlaggedAsInAppropriate: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -101,8 +109,8 @@ jobPostSchema.pre("find", function () {
 });
 // set the default value of the field adminCommissionPercentage in pre middaleware from const adminCommissionPercentage = await AdminService.adminCommission()
 jobPostSchema.pre("save", async function () {
-  const adminCommissionPercentage = await AdminService.adminCommission();
-  this.adminCommissionPercentage = adminCommissionPercentage;
+  const adminCommission = await AdminService.adminCommission();
+  this.adminCommissionPercentage = adminCommission;
 });
 const Post = model<IPost>("post", jobPostSchema);
 export default Post;

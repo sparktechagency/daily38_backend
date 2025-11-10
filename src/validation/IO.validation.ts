@@ -213,6 +213,13 @@ const ratingZodSchema = z.object({
   }),
 });
 
+const toggleFlaggedOrBlockedValidationZod = z.object({
+  body: z.object({
+    post_id: z.string({ required_error: "you must give the post id" }),
+    type: z.enum(["flagged", "blocked"]),
+  }),
+});
+
 export const Validation = {
   // singnUpZodSchema,
   ratingZodSchema,
@@ -230,4 +237,5 @@ export const Validation = {
   offerDeletaionValidationZod,
   searchValidationZod,
   forgetPassword,
+  toggleFlaggedOrBlockedValidationZod
 };

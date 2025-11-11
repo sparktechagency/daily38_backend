@@ -223,7 +223,7 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
         throw new ApiError(StatusCodes.BAD_REQUEST, "You can't provide the query status! 'PENDING' | 'COMPLETED'");
     }
 
-  const payments = await Payment.find().populate({
+  const payments = await Payment.find().sort({ createdAt: -1 }).populate({
     path: "orderId",
     select: "trackStatus offerID customer provider",
     populate: [

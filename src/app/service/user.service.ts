@@ -2585,7 +2585,7 @@ const addRating = async (payload: JwtPayload, data: TRating) => {
     provider: order.provider,
     post: order.post,
     rating: star,
-    comment: feedback,
+    comment: feedback.length > 500 ? feedback.substring(0, 500) : feedback,
   });
 
   return true;

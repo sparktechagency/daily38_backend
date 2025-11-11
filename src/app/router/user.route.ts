@@ -42,6 +42,12 @@ router
     )
 
 router
+    .route("/provider-rating-summary/:providerId")
+    .get(
+        UserServices.getRatingsSummary
+    )
+
+router
     .route("/status")
     .patch(
         auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),

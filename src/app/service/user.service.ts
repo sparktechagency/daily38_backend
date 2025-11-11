@@ -1011,7 +1011,7 @@ const offers = async (payload: JwtPayload, page = 1, limit = 10, sort = 0) => {
     status: OFFER_STATUS.WATING,
     typeOfOffer: { $ne: "counter-offer" },
   })
-    .sort(sort == 0 ? '-createdAt' : 'createdAt')
+    .sort(sort == 0 ? "-createdAt" : "createdAt")
     .limit(limit)
     .skip(skip)
     .populate("projectID", "coverImage showcaseImages projectName")
@@ -2916,6 +2916,62 @@ const getReatings = async (req: Request, res: Response) => {
   }
 };
 
+const getRatingsSummary = async (req: Request, res: Response) => {
+  try {
+    const providerId = req.params.providerId;
+    const objID = new mongoose.Types.ObjectId(providerId);
+
+    // Aggregating ratings
+    const ratingsSummary = await RatingModel.aggregate([
+      { $match: { provider: objID } },
+      {
+        $group: {
+          _id: null,
+          avg_rating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          ratingsMap: {
+            $push: "$rating",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          avg_rating: { $round: ["$avg_rating", 1] }, // Round the avg_rating to 1 decimal place
+          totalReviews: 1,
+          ratingsMap: 1,
+        },
+      },
+    ]);
+
+    // Ratings distribution
+    const ratingsMap = ratingsSummary[0]?.ratingsMap.reduce(
+      (acc: any, rating: number) => {
+        acc[rating] = (acc[rating] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
+
+    return res.status(StatusCodes.OK).json({
+      rating: ratingsSummary[0]?.avg_rating || 0,
+      totalReviews: ratingsSummary[0]?.totalReviews || 0,
+      ratingsMap: {
+        1: ratingsMap[1] || 0,
+        2: ratingsMap[2] || 0,
+        3: ratingsMap[3] || 0,
+        4: ratingsMap[4] || 0,
+        5: ratingsMap[5] || 0,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Something went wrong." });
+  }
+};
+
 const totalOffersOnPost = async (payload: JwtPayload, postID: string) => {
   const postObjId = new mongoose.Types.ObjectId(postID);
 
@@ -3143,6 +3199,7 @@ export const UserServices = {
   doCounter,
   totalOffersOnPost,
   getReatings,
+  getRatingsSummary,
   allPost,
   offerOnPost,
   aProvider,
@@ -3177,5 +3234,5 @@ export const UserServices = {
   supportRequest,
   iOfferd,
   getRecommendedPosts,
-  toggleFlaggedOrBlocked
+  toggleFlaggedOrBlocked,
 };

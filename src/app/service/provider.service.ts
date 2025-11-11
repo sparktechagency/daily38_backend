@@ -810,33 +810,33 @@ const reqestAction = async (
 
   // generate invoice for order
   const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
-    postID: order.offerID.projectID._id,
-    orderId: order._id,
-    paymentID: newPayment._id,
-    postName: order.offerID.projectID.projectName,
-    postDescription: order.offerID.projectID.jobDescription,
-    customerName: order.customer.fullName,
-    customerEmail: order.customer.email,
-    providerName: order.provider.fullName,
-    providerEmail: order.provider.email,
-    totalBudgetPaidByCustomer: order.offerID.budget,
+    postID: order?.offerID?.projectID?._id,
+    orderId: order?._id,
+    paymentID: newPayment?._id,
+    postName: order?.offerID?.projectID?.projectName,
+    postDescription: order?.offerID?.projectID?.jobDescription,
+    customerName: order?.customer?.fullName,
+    customerEmail: order?.customer?.email,
+    providerName: order?.provider?.fullName,
+    providerEmail: order?.provider?.email,
+    totalBudgetPaidByCustomer: order?.offerID?.budget,
     adminCommission: adminAmount,
     adminCommissionPercentage,
     providerReceiveAmount: budget - adminAmount,
   });
   const { pdfFullPath, pdfPathForDB } = await generatePDF(
     invoiceTemplate,
-    newPayment._id
+    newPayment?._id
   );
   const fileBuffer = fs.readFileSync(pdfFullPath);
 
   const values = {
-    name: order.customer.fullName as string,
-    email: order.customer.email as string,
+    name: order?.customer?.fullName as string,
+    email: order?.customer?.email as string,
     booking: order,
     attachments: [
       {
-        filename: `invoice-${order._id}.pdf`,
+        filename: `invoice-${order?._id}.pdf`,
         // content: invoicePDF,
         content: fileBuffer,
         contentType: "application/pdf",
@@ -853,12 +853,12 @@ const reqestAction = async (
 
   // for provider
   const valuesProvider = {
-    name: order.provider.fullName as string,
-    email: order.provider.email as string,
+    name: order?.provider?.fullName as string,
+    email: order?.provider?.email as string,
     booking: order,
     attachments: [
       {
-        filename: `invoice-${order._id}.pdf`,
+        filename: `invoice-${order?._id}.pdf`,
         content: fileBuffer,
         contentType: "application/pdf",
       },
@@ -911,13 +911,13 @@ const DelivaryRequestForTimeExtends = async (
     );
 
     const notification = await Notification.create({
-      for: order.provider,
-      content: `Your delivery time extends request was cancelled by ${order.customer.fullName}`,
+      for: order?.provider,
+      content: `Your delivery time extends request was cancelled by ${order?.customer?.fullName}`,
     });
 
     //@ts-ignore
     const io = global.io;
-    io.emit(`socket:${order.provider}`, notification);
+    io.emit(`socket:${order?.provider}`, notification);
   }
 
   const delivaryRequest = await DeliveryRequest.findByIdAndUpdate(
@@ -944,13 +944,13 @@ const DelivaryRequestForTimeExtends = async (
   }
 
   const notification = await Notification.create({
-    for: order.provider,
-    content: `You delivery time extends request approved by ${order.customer.fullName}`,
+    for: order?.provider,
+    content: `You delivery time extends request approved by ${order?.customer?.fullName}`,
   });
 
   //@ts-ignore
   const io = global.io;
-  io.emit(`socket:${order.provider}`, notification);
+  io.emit(`socket:${order?.provider}`, notification);
 
   return true;
 };

@@ -24,6 +24,8 @@ import Post from "../../model/post.model";
 import { emailTemplate } from "../../shared/emailTemplate";
 import { generatePDF } from "../../util/pdf/generatePDF";
 import { emailHelper } from "../../helpers/emailHelper";
+import fs from "fs";
+import { AdminService } from "./admin.service";
 
 const singleOrder = async (payload: JwtPayload, orderID: string) => {
   const { userID } = payload;
@@ -735,7 +737,10 @@ const reqestAction = async (
 
   const amountAfterFee = (budget - adminAmount) * 100;
 
-  console.log("🚀 ~ reqestAction ~ order.provider.paymentCartDetails:", order.provider.paymentCartDetails)
+  console.log(
+    "🚀 ~ reqestAction ~ order.provider.paymentCartDetails:",
+    order.provider.paymentCartDetails
+  );
   if (!order.provider.paymentCartDetails) {
     throw new ApiError(
       StatusCodes.CONFLICT,
@@ -797,9 +802,11 @@ const reqestAction = async (
     userId: order.customer,
     orderId: order._id,
     amount: budget,
-    commission: (budget - adminAmount),
+    commission: budget - adminAmount,
     status: PAYMENT_STATUS.SUCCESS,
   });
+
+  const adminCommissionPercentage = (order?.offerID?.projectID as any)?.adminCommissionPercentage || await AdminService.adminCommission();
 
   // generate invoice for order
   const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
@@ -814,9 +821,14 @@ const reqestAction = async (
     providerEmail: order.provider.email,
     totalBudgetPaidByCustomer: order.offerID.budget,
     adminCommission: adminAmount,
-    providerReceiveAmount: (budget - adminAmount),
+    adminCommissionPercentage,
+    providerReceiveAmount: budget - adminAmount,
   });
-  const invoicePDF = await generatePDF(invoiceTemplate, newPayment._id);
+  const { pdfFullPath, pdfPathForDB } = await generatePDF(
+    invoiceTemplate,
+    newPayment._id
+  );
+  const fileBuffer = fs.readFileSync(pdfFullPath);
 
   const values = {
     name: order.customer.fullName as string,
@@ -825,7 +837,8 @@ const reqestAction = async (
     attachments: [
       {
         filename: `invoice-${order._id}.pdf`,
-        content: invoicePDF,
+        // content: invoicePDF,
+        content: fileBuffer,
         contentType: "application/pdf",
       },
     ],
@@ -846,19 +859,20 @@ const reqestAction = async (
     attachments: [
       {
         filename: `invoice-${order._id}.pdf`,
-        content: invoicePDF,
+        content: fileBuffer,
         contentType: "application/pdf",
       },
     ],
   };
 
-  const emailTemplateDataProvider = emailTemplate.paymentInvoice(valuesProvider);
+  const emailTemplateDataProvider =
+    emailTemplate.paymentInvoice(valuesProvider);
   emailHelper.sendEmail({
     ...emailTemplateDataProvider,
     attachments: valuesProvider.attachments,
   });
 
-  newPayment.invoicePDF = invoicePDF;
+  newPayment.invoicePDF = pdfPathForDB;
   await newPayment.save();
 
   return true;

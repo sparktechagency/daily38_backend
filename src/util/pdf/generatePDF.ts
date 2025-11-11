@@ -13,14 +13,17 @@ export const generatePDF = async (htmlContent: string, paymentID: string) => {
 
      const rollBackToRootUploadDir = path.resolve(__dirname, './../../../uploads/');
 
-     const pdfPath = path.join(rollBackToRootUploadDir, 'doc', `payment_${paymentID}_invoice.pdf`);
-     console.log("🚀 ~ generatePDF ~ pdfPath:", pdfPath)
+     const pdfFullPath = path.join(rollBackToRootUploadDir, 'doc', `payment_${paymentID}_invoice.pdf`);
+     console.log("🚀 ~ generatePDF ~ pdfPath:", pdfFullPath)
 
      // Save the PDF to disk
-     fs.writeFileSync(pdfPath, pdfBuffer);
+     fs.writeFileSync(pdfFullPath, pdfBuffer);
 
      await browser.close();
 
      // return pdfPath;
-    return `/doc/payment_${paymentID}_invoice.pdf`;
+    return {
+     pdfFullPath,
+     pdfPathForDB: `/doc/payment_${paymentID}_invoice.pdf`
+    };
 };

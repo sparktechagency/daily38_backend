@@ -164,6 +164,7 @@ const paymentHtmlInvoice = (payload: {
   totalBudgetPaidByCustomer: number;
   adminCommission: number;
   providerReceiveAmount: number;
+  adminCommissionPercentage: number;
 }) => {
   const {
     postID,
@@ -178,6 +179,7 @@ const paymentHtmlInvoice = (payload: {
     totalBudgetPaidByCustomer,
     adminCommission,
     providerReceiveAmount,
+    adminCommissionPercentage
   } = payload;
   return `
   <!DOCTYPE html>
@@ -273,6 +275,7 @@ const paymentHtmlInvoice = (payload: {
         <p><strong>Total Budget Paid by Customer:</strong> <span class="amount">${totalBudgetPaidByCustomer} USD</span></p>
         <p><strong>Admin Commission:</strong> <span class="amount">${adminCommission} USD</span></p>
         <p><strong>Provider's Amount to Receive:</strong> <span class="amount">${providerReceiveAmount} USD</span></p>
+        <p><strong>Admin Commission Percentage:</strong> <span class="amount">${adminCommissionPercentage}%</span></p>
       </div>
     </div>
 

@@ -15,6 +15,8 @@ import { makeAmountWithFee } from "../../helpers/fee";
 import { OFFER_STATUS } from "../../enums/offer.enum";
 import Payment from "../../model/payment.model";
 import mongoose from "mongoose";
+import { AdminService } from "./admin.service";
+import Post from "../../model/post.model";
 
 const createSession = async (
   payload: JwtPayload,
@@ -230,10 +232,10 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
       {
         path: "offerID",
         select: "projectID budget",
-        populate: {
-          path: "projectID",
-          select: "projectName isOfferApproved isPaid isOnProject adminCommissionPercentage",
-        },
+        // populate: {
+        //   path: "projectID",
+        //   select: "projectName isOfferApproved isPaid isOnProject adminCommissionPercentage",
+        // },
       },
       {
         path: "customer",
@@ -259,22 +261,56 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
     }
   });
 
-  const structuredReocrds = records.map((payment) => {
+  
+  const currentAdminCommissionPercentage = await AdminService.adminCommission();
+
+  // const structuredReocrds = records.map((payment) => {
+  //   return {
+  //     paymentId: payment._id,
+  //     postName: payment?.orderId?.offerID?.projectID?.projectName || "",
+  //     customerName: payment?.orderId?.customer?.fullName || "",
+  //     providerName: payment?.orderId?.provider?.fullName || "",
+  //     fullPaidAmount: payment.amount,
+  //     commission: payment.commission,
+  //     providerRecievedAmount: payment.amount - payment.commission,
+  //     paymentStatus: payment.status,
+  //     orderStatus: payment.orderId.trackStatus,
+  //     createdAt: payment.createdAt,
+  //     invoicePDF: payment.invoicePDF || "",
+  //     adminCommissionPercentage: payment?.orderId?.offerID?.projectID?.adminCommissionPercentage || currentAdminCommissionPercentage,
+  //   };
+  // });
+
+  
+  const structuredReocrds = await Promise.all(
+  records.map(async payment => {
+    const projectId = payment?.orderId?.offerID?.projectID
+    const project = projectId
+      ? await Post.findById(projectId)
+          .select('projectName adminCommissionPercentage')
+          .lean()
+          .exec()
+      : null
+
+    const adminCommissionPercentage =
+      project?.adminCommissionPercentage ?? currentAdminCommissionPercentage
+
     return {
       paymentId: payment._id,
-      postName: payment?.orderId?.offerID?.projectID?.projectName || "",
-      customerName: payment?.orderId?.customer?.fullName || "",
-      providerName: payment?.orderId?.provider?.fullName || "",
+      postName: project?.projectName || '',
+      customerName: payment?.orderId?.customer?.fullName || '',
+      providerName: payment?.orderId?.provider?.fullName || '',
       fullPaidAmount: payment.amount,
       commission: payment.commission,
       providerRecievedAmount: payment.amount - payment.commission,
       paymentStatus: payment.status,
-      orderStatus: payment.orderId.trackStatus,
+      orderStatus: payment.orderId?.trackStatus,
       createdAt: payment.createdAt,
-      invoicePDF: payment.invoicePDF || "",
-      adminCommissionPercentage: payment?.orderId?.offerID?.projectID?.adminCommissionPercentage || 0,
-    };
-  });
+      invoicePDF: payment.invoicePDF || '',
+      adminCommissionPercentage,
+    }
+  })
+)
 
   const totalLifeTimeSpentByCustomer = structuredReocrds.reduce(
     (total, payment) => total + payment.fullPaidAmount,

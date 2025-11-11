@@ -3178,16 +3178,16 @@ const doCounter = async (
 
 const toggleFlaggedOrBlocked = async (
   payload: JwtPayload,
-  data: { post_id: string; type: "flagged" | "blocked" }
+  data: { post_id: string; type: ACCOUNT_STATUS }
 ) => {
   const post = await Post.findById(new mongoose.Types.ObjectId(data.post_id));
   if (!post) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Post not found!");
   }
 
-  if (data.type == "flagged") {
+  if (data.type == ACCOUNT_STATUS.FLAGGED) {
     post.isFlaggedAsInAppropriate = !post.isFlaggedAsInAppropriate;
-  } else if (data.type == "blocked") {
+  } else if (data.type == ACCOUNT_STATUS.BLOCK) {
     post.isBlocked = !post.isBlocked;
   }
 

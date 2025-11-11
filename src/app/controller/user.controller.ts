@@ -559,7 +559,7 @@ const toggleFlaggedOrBlocked = catchAsync(
     sendResponse(res, {
       success: true,
       statusCode: StatusCodes.OK,
-      message: "Successfully deleted notificaitons!",
+      message: `Successfully modified the post!`,
       data: result,
     });
   }

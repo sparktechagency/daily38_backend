@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TrackOfferType } from "../Interfaces/offer.interface";
+import { ACCOUNT_STATUS } from "../enums/user.enums";
 
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -216,7 +217,14 @@ const ratingZodSchema = z.object({
 const toggleFlaggedOrBlockedValidationZod = z.object({
   body: z.object({
     post_id: z.string({ required_error: "you must give the post id" }),
-    type: z.enum(["flagged", "blocked"]),
+    type: z.nativeEnum(ACCOUNT_STATUS),
+  }).superRefine((data, ctx) => {
+    if (data.type != ACCOUNT_STATUS.FLAGGED && data.type != ACCOUNT_STATUS.BLOCK) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "You must give the correct type FLAGGED or BLOCK",
+      });
+    }
   }),
 });
 

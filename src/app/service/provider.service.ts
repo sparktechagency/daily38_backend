@@ -21,6 +21,11 @@ import Chat from "../../model/chat.model";
 import { transfers } from "../router/payment.route";
 import { makeAmountWithFee } from "../../helpers/fee";
 import Post from "../../model/post.model";
+import { emailTemplate } from "../../shared/emailTemplate";
+import { generatePDF } from "../../util/pdf/generatePDF";
+import { emailHelper } from "../../helpers/emailHelper";
+import fs from "fs";
+import { AdminService } from "./admin.service";
 
 const singleOrder = async (payload: JwtPayload, orderID: string) => {
   const { userID } = payload;
@@ -675,7 +680,24 @@ const reqestAction = async (
 
   const order = await Order.findByIdAndUpdate(delivaryRequest.orderID)
     .populate("provider")
-    .populate("offerID");
+    .populate([
+      {
+        path: "offerID",
+        select: "budget projectID",
+        populate: {
+          path: "projectID",
+          select: "adminCommissionPercentage projectName jobDescription",
+        },
+      },
+      {
+        path: "customer",
+        select: "fullName email",
+      },
+      {
+        path: "provider",
+        select: "fullName email paymentCartDetails",
+      },
+    ]);
   console.log("🚀 ~ reqestAction ~ order:", {
     _id: order._id,
     trackisComplitedStatus: order.trackStatus.isComplited.status,
@@ -701,7 +723,10 @@ const reqestAction = async (
   }
 
   const budget = order.offerID.budget;
-  const adminAmount = await makeAmountWithFee(budget);
+  const adminAmount = await makeAmountWithFee(
+    Number(budget),
+    (order?.offerID?.projectID as any)?.adminCommissionPercentage || undefined
+  );
 
   if (adminAmount > budget) {
     throw new ApiError(
@@ -712,6 +737,10 @@ const reqestAction = async (
 
   const amountAfterFee = (budget - adminAmount) * 100;
 
+  console.log(
+    "🚀 ~ reqestAction ~ order.provider.paymentCartDetails:",
+    order.provider.paymentCartDetails
+  );
   if (!order.provider.paymentCartDetails) {
     throw new ApiError(
       StatusCodes.CONFLICT,
@@ -769,13 +798,82 @@ const reqestAction = async (
   const io = global.io;
   io.emit(`socket:${order.provider._id}`, notification);
 
-  await Payment.create({
+  const newPayment = await Payment.create({
     userId: order.customer,
     orderId: order._id,
     amount: budget,
-    commission: amountAfterFee,
+    commission: budget - adminAmount,
     status: PAYMENT_STATUS.SUCCESS,
   });
+
+  const adminCommissionPercentage = (order?.offerID?.projectID as any)?.adminCommissionPercentage || await AdminService.adminCommission();
+
+  // generate invoice for order
+  const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
+    postID: order?.offerID?.projectID?._id,
+    orderId: order?._id,
+    paymentID: newPayment?._id,
+    postName: order?.offerID?.projectID?.projectName,
+    postDescription: order?.offerID?.projectID?.jobDescription,
+    customerName: order?.customer?.fullName,
+    customerEmail: order?.customer?.email,
+    providerName: order?.provider?.fullName,
+    providerEmail: order?.provider?.email,
+    totalBudgetPaidByCustomer: order?.offerID?.budget,
+    adminCommission: adminAmount,
+    adminCommissionPercentage,
+    providerReceiveAmount: budget - adminAmount,
+  });
+  const { pdfFullPath, pdfPathForDB } = await generatePDF(
+    invoiceTemplate,
+    newPayment?._id
+  );
+  const fileBuffer = fs.readFileSync(pdfFullPath);
+
+  const values = {
+    name: order?.customer?.fullName as string,
+    email: order?.customer?.email as string,
+    booking: order,
+    attachments: [
+      {
+        filename: `invoice-${order?._id}.pdf`,
+        // content: invoicePDF,
+        content: fileBuffer,
+        contentType: "application/pdf",
+      },
+    ],
+  };
+
+  // for customer
+  const emailTemplateData = emailTemplate.paymentInvoice(values);
+  emailHelper.sendEmail({
+    ...emailTemplateData,
+    attachments: values.attachments,
+  });
+
+  // for provider
+  const valuesProvider = {
+    name: order?.provider?.fullName as string,
+    email: order?.provider?.email as string,
+    booking: order,
+    attachments: [
+      {
+        filename: `invoice-${order?._id}.pdf`,
+        content: fileBuffer,
+        contentType: "application/pdf",
+      },
+    ],
+  };
+
+  const emailTemplateDataProvider =
+    emailTemplate.paymentInvoice(valuesProvider);
+  emailHelper.sendEmail({
+    ...emailTemplateDataProvider,
+    attachments: valuesProvider.attachments,
+  });
+
+  newPayment.invoicePDF = pdfPathForDB;
+  await newPayment.save();
 
   return true;
 };
@@ -813,13 +911,13 @@ const DelivaryRequestForTimeExtends = async (
     );
 
     const notification = await Notification.create({
-      for: order.provider,
-      content: `Your delivery time extends request was cancelled by ${order.customer.fullName}`,
+      for: order?.provider,
+      content: `Your delivery time extends request was cancelled by ${order?.customer?.fullName}`,
     });
 
     //@ts-ignore
     const io = global.io;
-    io.emit(`socket:${order.provider}`, notification);
+    io.emit(`socket:${order?.provider}`, notification);
   }
 
   const delivaryRequest = await DeliveryRequest.findByIdAndUpdate(
@@ -846,13 +944,13 @@ const DelivaryRequestForTimeExtends = async (
   }
 
   const notification = await Notification.create({
-    for: order.provider,
-    content: `You delivery time extends request approved by ${order.customer.fullName}`,
+    for: order?.provider,
+    content: `You delivery time extends request approved by ${order?.customer?.fullName}`,
   });
 
   //@ts-ignore
   const io = global.io;
-  io.emit(`socket:${order.provider}`, notification);
+  io.emit(`socket:${order?.provider}`, notification);
 
   return true;
 };

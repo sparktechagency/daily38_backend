@@ -27,4 +27,5 @@ export default {
   database_user_password: process.env.MONGODB_ADMINPASSWORD!,
   database_name: process.env.DATABASE_NAME!,
   database_port: process.env.MONGODB_PORT!,
+  backendBaseUrl: process.env.BACKEND_BASE_URL!,
 };

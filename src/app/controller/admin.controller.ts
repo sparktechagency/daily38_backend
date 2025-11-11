@@ -551,6 +551,37 @@ const intrackWithRequest = catchAsync(
     }
 );
 
+
+const getPlatformPerformance = catchAsync(
+  async (req: Request, res: Response) => {
+    const timeRange = req.query.timeRange as 'day' | 'week' | 'month' | 'year' || 'month';
+    const result = await AdminService.getPlatformPerformance(
+      (req as any).user,
+      timeRange
+    );
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Platform performance data retrieved successfully",
+      data: result
+    });
+  }
+);
+
+const getInsights = catchAsync(
+  async (req: Request, res: Response) => {
+    const result = await AdminService.generateInsights((req as any).user);
+
+    sendResponse(res, {
+      success: true,
+      statusCode: StatusCodes.OK,
+      message: "Insights generated successfully",
+      data: result
+    });
+  }
+);
+
 export const AdminController = {
     overView,
     customers,
@@ -584,5 +615,7 @@ export const AdminController = {
     newSubCatagroys,
     deleteSubCatagroys,
     updateSubCatagroys,
-    engagement
+    engagement,
+    getPlatformPerformance,
+    getInsights
 };

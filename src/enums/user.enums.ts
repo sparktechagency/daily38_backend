@@ -14,7 +14,8 @@ export enum ACCOUNT_STATUS {
   ACTIVE = 'ACTIVE',
   BLOCK = 'BLOCK',
   REPORT = 'REPORT',
-  DELETE = "DELETE"
+  DELETE = "DELETE",
+  FLAGGED = "FLAGGED"
 }
 
 export enum SELECTED_LANGUAGE {

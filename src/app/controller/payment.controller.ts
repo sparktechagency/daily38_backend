@@ -277,10 +277,24 @@ const PaymentVerify = catchAsync(
     }
 )
 
+const PaymentRecords = catchAsync(
+    async( req: Request, res: Response ) => {
+        const result = await PaymentService.PaymentRecords(req.user,req.query.queryStatus as 'PENDING' | 'COMPLETED');
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the payments",
+            data: result
+        });
+    }
+)
+
 export const PaymentController = {
     payForService,
     PaymentVerify,
     verifyUser,
     refreshSesstion,
-    successFullSession
+    successFullSession,
+    PaymentRecords
 }

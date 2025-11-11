@@ -1,5 +1,6 @@
 import { model, models, Schema, Types } from "mongoose";
 import { IPost } from "../Interfaces/post.interface";
+import { AdminService } from "../app/service/admin.service";
 
 const jobPostSchema = new Schema<IPost>(
   {
@@ -85,6 +86,17 @@ const jobPostSchema = new Schema<IPost>(
       type: Schema.Types.ObjectId,
       ref: "user",
     },
+    adminCommissionPercentage: {
+      type: Number,
+    },
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+    isFlaggedAsInAppropriate: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
@@ -95,6 +107,10 @@ jobPostSchema.index({ latLng: "2dsphere" });
 jobPostSchema.pre("find", function () {
   this.where({ isDeleted: false });
 });
-
+// set the default value of the field adminCommissionPercentage in pre middaleware from const adminCommissionPercentage = await AdminService.adminCommission()
+jobPostSchema.pre("save", async function () {
+  const adminCommission = await AdminService.adminCommission();
+  this.adminCommissionPercentage = adminCommission;
+});
 const Post = model<IPost>("post", jobPostSchema);
 export default Post;

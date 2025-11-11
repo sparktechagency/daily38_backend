@@ -42,6 +42,12 @@ router
     )
 
 router
+    .route("/provider-rating-summary/:providerId")
+    .get(
+        UserServices.getRatingsSummary
+    )
+
+router
     .route("/status")
     .patch(
         auth( USER_ROLES.SERVICE_PROVIDER, USER_ROLES.USER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
@@ -96,7 +102,7 @@ router
 router
     .route("/post/all")
     .get(
-        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER ),
+        auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER,USER_ROLES.ADMIN,USER_ROLES.SUPER_ADMIN ),
         UserController.allPost
     )
 
@@ -207,6 +213,14 @@ router
     .get(
         auth( USER_ROLES.USER, USER_ROLES.SERVICE_PROVIDER, USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
         UserController.filterPosts
+    )
+
+router
+    .route("/post/toggle-flagged-or-blocked")
+    .patch(
+        auth( USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN ),
+        validateRequest( Validation.toggleFlaggedOrBlockedValidationZod ),
+        UserController.toggleFlaggedOrBlocked
     )
 
 router

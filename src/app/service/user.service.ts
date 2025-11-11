@@ -38,6 +38,7 @@ import { RatingModel } from "../../model/Rating.model";
 import Chat from "../../model/chat.model";
 import { IOffer, TrackOfferType } from "../../Interfaces/offer.interface";
 import Message from "../../model/message.model";
+import { AdminService } from "./admin.service";
 // import { calculateDistanceInKm } from "../../helpers/calculationCount";
 
 //User signUp
@@ -689,11 +690,16 @@ const deleteJob = async (payload: JwtPayload, Data: { postID: string }) => {
     throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
   }
 
-  if (post.creatorID.toString() !== userID.toString()) {
-    throw new ApiError(
-      StatusCodes.NOT_FOUND,
-      "This post is not linked to your account"
-    );
+  if (
+    payload.role !== USER_ROLES.SUPER_ADMIN &&
+    payload.role !== USER_ROLES.ADMIN
+  ) {
+    if (post.creatorID.toString() !== userID.toString()) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "This post is not linked to your account"
+      );
+    }
   }
 
   if (post.showcaseImages && Array.isArray(post.showcaseImages)) {
@@ -1005,7 +1011,7 @@ const offers = async (payload: JwtPayload, page = 1, limit = 10, sort = 0) => {
     status: OFFER_STATUS.WATING,
     typeOfOffer: { $ne: "counter-offer" },
   })
-    .sort({ updatedAt: sort == 0 ? 1 : -1 })
+    .sort(sort == 0 ? "-createdAt" : "createdAt")
     .limit(limit)
     .skip(skip)
     .populate("projectID", "coverImage showcaseImages projectName")
@@ -1097,10 +1103,10 @@ const getAOffer = async (payload: JwtPayload, offerId: string) => {
 
   const isUserExist = await User.findById(userID);
 
-  const iOffer = isUserExist.iOffered.filter(
+  const iOffer = isUserExist?.iOffered?.filter(
     (e: any) => e._id.toString() === offerId
   );
-  const myOffers = isUserExist.myOffer.filter(
+  const myOffers = isUserExist?.myOffer?.filter(
     (e: any) => e._id.toString() === offerId
   );
 
@@ -1165,7 +1171,15 @@ const getAOffer = async (payload: JwtPayload, offerId: string) => {
     ],
   });
 
+  const projectsAdminCommission = await Post.findById(offer.projectID)
+    .select("adminCommissionPercentage")
+    .lean();
+  let adminCommissionPercentage: number =
+    projectsAdminCommission?.adminCommissionPercentage ||
+    (await AdminService.adminCommission());
+
   return {
+    adminCommissionPercentage,
     ...offer,
     isFavorite,
     chatID: chat?._id ? chat._id : "",
@@ -1762,13 +1776,13 @@ const intracatOffer = async (
       `socket:${notificationForProvider.for.toString()}`,
       // notificationForProvider
       {
-      for: providerExist && providerExist._id,
-      notiticationType: "REFRESH",
-      content:
-        isUserExist._id != provider._id
-          ? `Your offer has been accepted successfully.`
-          : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`,
-    }
+        for: providerExist && providerExist._id,
+        notiticationType: "REFRESH",
+        content:
+          isUserExist._id != provider._id
+            ? `Your offer has been accepted successfully.`
+            : `${customer.fullName} was accept your offer now you should pay to confirm your order###!`,
+      }
     );
   } else {
     console.log("user ===================down");
@@ -2372,6 +2386,8 @@ const getPostsOrProviders = async ({
       isPaid: false,
       isOfferApproved: false,
       isDeleted: false,
+      isBlocked: false,
+      isFlaggedAsInAppropriate: false,
     };
 
     if (category) {
@@ -2569,7 +2585,7 @@ const addRating = async (payload: JwtPayload, data: TRating) => {
     provider: order.provider,
     post: order.post,
     rating: star,
-    comment: feedback,
+    comment: feedback.length > 500 ? feedback.substring(0, 500) : feedback,
   });
 
   return true;
@@ -2900,6 +2916,64 @@ const getReatings = async (req: Request, res: Response) => {
   }
 };
 
+const getRatingsSummary = async (req: Request, res: Response) => {
+  try {
+    const providerId = req.params.providerId;
+    const objID = new mongoose.Types.ObjectId(providerId);
+
+    // Aggregating ratings
+    const ratingsSummary = await RatingModel.aggregate([
+      { $match: { provider: objID } },
+      {
+        $group: {
+          _id: null,
+          avg_rating: { $avg: "$rating" },
+          totalReviews: { $sum: 1 },
+          ratingsMap: {
+            $push: "$rating",
+          },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          avg_rating: { $round: ["$avg_rating", 1] }, // Round the avg_rating to 1 decimal place
+          totalReviews: 1,
+          ratingsMap: 1,
+        },
+      },
+    ]);
+
+    // Ratings distribution
+    const ratingsMap = ratingsSummary[0]?.ratingsMap.reduce(
+      (acc: any, rating: number) => {
+        acc[rating] = (acc[rating] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
+
+    return res.status(StatusCodes.OK).json({
+      data: {
+        rating: ratingsSummary[0]?.avg_rating || 0,
+        totalReviews: ratingsSummary[0]?.totalReviews || 0,
+        ratingsMap: {
+          1: ratingsMap[1] || 0,
+          2: ratingsMap[2] || 0,
+          3: ratingsMap[3] || 0,
+          4: ratingsMap[4] || 0,
+          5: ratingsMap[5] || 0,
+        },
+      },
+    });
+  } catch (error) {
+    console.log(error);
+    return res
+      .status(StatusCodes.INTERNAL_SERVER_ERROR)
+      .json({ message: "Something went wrong." });
+  }
+};
+
 const totalOffersOnPost = async (payload: JwtPayload, postID: string) => {
   const postObjId = new mongoose.Types.ObjectId(postID);
 
@@ -3102,11 +3176,32 @@ const doCounter = async (
   io.emit(`socket:${providerdata._id}`, notification);
 };
 
+const toggleFlaggedOrBlocked = async (
+  payload: JwtPayload,
+  data: { post_id: string; type: ACCOUNT_STATUS }
+) => {
+  const post = await Post.findById(new mongoose.Types.ObjectId(data.post_id));
+  if (!post) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Post not found!");
+  }
+
+  if (data.type == ACCOUNT_STATUS.FLAGGED) {
+    post.isFlaggedAsInAppropriate = !post.isFlaggedAsInAppropriate;
+  } else if (data.type == ACCOUNT_STATUS.BLOCK) {
+    post.isBlocked = !post.isBlocked;
+  }
+
+  await post.save();
+
+  return post;
+};
+
 export const UserServices = {
   getPostsOrProviders,
   doCounter,
   totalOffersOnPost,
   getReatings,
+  getRatingsSummary,
   allPost,
   offerOnPost,
   aProvider,
@@ -3141,4 +3236,5 @@ export const UserServices = {
   supportRequest,
   iOfferd,
   getRecommendedPosts,
+  toggleFlaggedOrBlocked,
 };

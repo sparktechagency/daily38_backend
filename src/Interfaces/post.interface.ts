@@ -26,6 +26,9 @@ export interface IPost extends Document {
   }[];
   isPaid: boolean
   isOfferApproved: boolean
+  adminCommissionPercentage: number
+  isBlocked: boolean
+  isFlaggedAsInAppropriate: boolean
 }
 
 

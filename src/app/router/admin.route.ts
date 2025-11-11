@@ -206,4 +206,18 @@ router
         AdminController.intrackWithRequest
     )
 
+    router
+  .route("/performance")
+  .get(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    AdminController.getPlatformPerformance
+  );
+
+router
+  .route("/insights")
+  .get(
+    auth(USER_ROLES.ADMIN, USER_ROLES.SUPER_ADMIN),
+    AdminController.getInsights
+  );
+
 export const AdminRoter = router;

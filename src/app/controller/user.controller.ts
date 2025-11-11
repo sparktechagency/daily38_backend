@@ -211,7 +211,7 @@ const post = catchAsync(async (req: Request, res: Response) => {
 
 const deletePost = catchAsync(async (req: Request, res: Response) => {
   const payload = (req as any)?.user;
-  const { ...Data } = await req.body;
+  const { ...Data } = req.body;
   const result = await UserServices.deleteJob(payload, Data);
 
   sendResponse(res, {

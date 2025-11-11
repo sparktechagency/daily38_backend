@@ -238,6 +238,10 @@ const ACompletedOrder = async (payload: string) => {
     users: { $all: [order.customer?._id, order.provider?._id] },
   });
 
+  const paymentInvoice = await Payment.findOne({
+    orderId: order._id,
+  }).select("invoicePDF");
+
   return {
     totalPrice: order.offerID?.budget,
     projectName: project?.projectName,
@@ -255,6 +259,7 @@ const ACompletedOrder = async (payload: string) => {
     images: delivaryRequest?.images,
     offerID: order.offerID?._id,
     chatID: isChatExist[0]?._id || null,
+    invoicePDF: paymentInvoice?.invoicePDF || "",
   };
 };
 

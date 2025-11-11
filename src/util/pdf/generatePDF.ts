@@ -2,7 +2,15 @@ import puppeteer from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 export const generatePDF = async (htmlContent: string, paymentID: string) => {
-     const browser = await puppeteer.launch();
+     const browser = await puppeteer.launch({
+        headless: true,
+        args: [
+            '--no-sandbox', // Disable sandboxing
+            '--disable-setuid-sandbox', // Disable setuid sandboxing
+            '--disable-gpu', // Disable GPU hardware acceleration
+            '--window-size=1280x1024', // Set a window size
+        ]
+    });
      const page = await browser.newPage();
 
      await page.setContent(htmlContent); // Set HTML content
@@ -16,8 +24,12 @@ export const generatePDF = async (htmlContent: string, paymentID: string) => {
      const pdfFullPath = path.join(rollBackToRootUploadDir, 'doc', `payment_${paymentID}_invoice.pdf`);
      console.log("🚀 ~ generatePDF ~ pdfPath:", pdfFullPath)
 
-     // Save the PDF to disk
-     fs.writeFileSync(pdfFullPath, pdfBuffer);
+      // Save the PDF to disk
+    try {
+        fs.writeFileSync(pdfFullPath, pdfBuffer);
+    } catch (error) {
+       console.log("🚀 ~ generatePDF ~ error:", error)
+    }
 
      await browser.close();
 

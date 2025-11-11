@@ -252,7 +252,7 @@ const aCustomer = async (
 const updateUserAccountStatus = async (
     payload: JwtPayload,
     customerID: string,
-    acction: ACCOUNT_STATUS.ACTIVE | ACCOUNT_STATUS.BLOCK | ACCOUNT_STATUS.DELETE | ACCOUNT_STATUS.REPORT
+    acction: ACCOUNT_STATUS
 ) => {
     const { userID } = payload;
     const isAdmin = await User.findById(userID);

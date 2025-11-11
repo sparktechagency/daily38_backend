@@ -208,7 +208,7 @@ const allCustomers = async (
   const total = await User.countDocuments({ role: "USER" });
 
   const allUsers = await User.aggregate([
-    { $match: { role: "USER" } },
+    { $match: { role: "USER", accountStatus: {$ne: ACCOUNT_STATUS.DELETE} } },
     {
       $project: {
         _id: 1,
@@ -265,6 +265,12 @@ const updateUserAccountStatus = async (
     };
 
     customer.accountStatus = acction;
+    if (acction === ACCOUNT_STATUS.DELETE) {
+      customer.email = "deleted_" + customer.email;
+      customer.fullName = "deleted_" + customer.fullName;
+      customer.phone = "deleted_" + customer.phone;
+      customer.profileImage = "deleted_" + customer.profileImage;
+    }
     await customer.save();
 
     return true;
@@ -290,7 +296,7 @@ const allProvider = async (
   const total = await User.countDocuments({ role: "SERVICE_PROVIDER" });
 
   const allServiceProviders = await User.aggregate([
-    { $match: { role: "SERVICE_PROVIDER" } },
+    { $match: { role: "SERVICE_PROVIDER",accountStatus: {$ne: ACCOUNT_STATUS.DELETE} } },
     {
       $project: {
         _id: 1,
@@ -363,6 +369,7 @@ const allPayments = async (
     customerName: payment.userId?.fullName || "",
     profit: payment.commission || "",
     paymentStatus: payment.status || "",
+    invoicePDF: payment.invoicePDF || "",
     _id: payment._id,
   }))
 
@@ -412,6 +419,8 @@ const APayments = async (
 
     return {//@ts-ignore
       customerName: payment?.userId?.fullName || "",
+      //@ts-ignore
+      invoicePDF: payment.invoicePDF || "",
       //@ts-ignore
       companyName: payment.orderId.offerID.projectID.projectName || "Boolbi",
       //@ts-ignore

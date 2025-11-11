@@ -194,7 +194,7 @@ const payoutToUser = async (payload: JwtPayload, orderID: any) => {
     );
   }
 
-  const adminAmount = await makeAmountWithFee(Number(order.offerID.budget),(order.offerID.projectID as any).adminCommissionPercentage);
+  const adminAmount = await makeAmountWithFee(Number(order.offerID.budget),(order?.offerID?.projectID as any)?.adminCommissionPercentage || undefined);
 
   const providerAmount = Number(order.offerID.budget) - adminAmount;
 
@@ -253,9 +253,9 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
   const records = payments.filter((payment) => {
     const userObjectId = new mongoose.Types.ObjectId(user.userID);
     if (user.role === USER_ROLES.USER) {
-      return payment.orderId.customer.equals(userObjectId); // Use equals() for ObjectId comparison
+      return payment?.orderId?.customer?.equals(userObjectId); // Use equals() for ObjectId comparison
     } else if (user.role === USER_ROLES.SERVICE_PROVIDER) {
-      return payment.orderId.provider.equals(userObjectId); // Use equals() for ObjectId comparison
+      return payment?.orderId?.provider?.equals(userObjectId); // Use equals() for ObjectId comparison
     }
   });
 
@@ -271,6 +271,7 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
       paymentStatus: payment.status,
       orderStatus: payment.orderId.trackStatus,
       createdAt: payment.createdAt,
+      invoicePDF: payment.invoicePDF || "",
     };
   });
 

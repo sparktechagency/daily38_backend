@@ -1,7 +1,7 @@
-import nodemailer from 'nodemailer';
-import { errorLogger, logger } from '../shared/logger';
-import { ISendEmail } from '../types/email';
-import config from '../config';
+import nodemailer from "nodemailer";
+import { errorLogger, logger } from "../shared/logger";
+import { ISendEmail } from "../types/email";
+import config from "../config";
 
 const transporter = nodemailer.createTransport({
   host: config.email_host,
@@ -15,16 +15,28 @@ const transporter = nodemailer.createTransport({
 
 const sendEmail = async (values: ISendEmail) => {
   try {
-    const info = await transporter.sendMail({
-      from: `"BOOLBI" ${config.email_from}`,
+    const mailOptions: any = {
+      from: `"Daily38" ${config.email_from}`,
       to: values.to,
       subject: values.subject,
       html: values.html,
-    });
+    };
 
-    logger.info('Mail send successfully', info.accepted);
+    // Add attachments if provided
+    if (values.attachments && values.attachments.length > 0) {
+      mailOptions.attachments = values.attachments.map((attachment) => ({
+        filename: attachment.filename,
+        content: attachment.content,
+        contentType: attachment.contentType || "application/octet-stream",
+        encoding: "base64",
+      }));
+    }
+
+    const info = await transporter.sendMail(mailOptions);
+    logger.info("Mail sent successfully", info.accepted);
   } catch (error) {
-    errorLogger.error('Email', error);
+    errorLogger.error("Email sending failed", error);
+    throw error; // Re-throw to handle in the calling function
   }
 };
 

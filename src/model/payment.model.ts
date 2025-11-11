@@ -16,7 +16,8 @@ const paymentSchema = new Schema({
       type: String, 
       enum: PAYMENT_STATUS, 
       default: PAYMENT_STATUS.PENDING 
-    }
+    },
+    invoicePDF: String,
   },{
     timestamps: true
   });

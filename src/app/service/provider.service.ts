@@ -798,21 +798,35 @@ const reqestAction = async (
   const io = global.io;
   io.emit(`socket:${order.provider._id}`, notification);
 
-  const newPayment = await Payment.create({
+  let payment_details = await Payment.findOne({
     userId: order.customer,
     orderId: order._id,
     amount: budget,
-    commission: budget - adminAmount,
-    status: PAYMENT_STATUS.SUCCESS,
+    commission: adminAmount,
+    status: { $ne: PAYMENT_STATUS.SUCCESS },
   });
+  if (payment_details) {
+    payment_details.status = PAYMENT_STATUS.SUCCESS;
+    await payment_details.save();
+  } else {
+    payment_details = await Payment.create({
+      userId: order.customer,
+      orderId: order._id,
+      amount: budget,
+      commission: adminAmount,
+      status: PAYMENT_STATUS.SUCCESS,
+    });
+  }
 
-  const adminCommissionPercentage = (order?.offerID?.projectID as any)?.adminCommissionPercentage || await AdminService.adminCommission();
+  const adminCommissionPercentage =
+    (order?.offerID?.projectID as any)?.adminCommissionPercentage ||
+    (await AdminService.adminCommission());
 
   // generate invoice for order
   const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
     postID: order?.offerID?.projectID?._id,
     orderId: order?._id,
-    paymentID: newPayment?._id,
+    paymentID: payment_details?._id,
     postName: order?.offerID?.projectID?.projectName,
     postDescription: order?.offerID?.projectID?.jobDescription,
     customerName: order?.customer?.fullName,
@@ -822,11 +836,11 @@ const reqestAction = async (
     totalBudgetPaidByCustomer: order?.offerID?.budget,
     adminCommission: adminAmount,
     adminCommissionPercentage,
-    providerReceiveAmount: budget - adminAmount,
+    providerReceiveAmount: amountAfterFee,
   });
   const { pdfFullPath, pdfPathForDB } = await generatePDF(
     invoiceTemplate,
-    newPayment?._id
+    payment_details?._id
   );
   const fileBuffer = fs.readFileSync(pdfFullPath);
 
@@ -872,8 +886,8 @@ const reqestAction = async (
     attachments: valuesProvider.attachments,
   });
 
-  newPayment.invoicePDF = pdfPathForDB;
-  await newPayment.save();
+  payment_details.invoicePDF = pdfPathForDB;
+  await payment_details.save();
 
   return true;
 };

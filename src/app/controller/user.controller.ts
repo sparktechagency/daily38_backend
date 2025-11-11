@@ -332,7 +332,7 @@ const IOffer = catchAsync(async (req: Request, res: Response) => {
     statusCode: StatusCodes.OK,
     //@ts-ignore
     message: result?.isDecline
-      ? result.message
+      ? (result as any)?.message
       : "Successfully offer intraction",
     data: result,
   });

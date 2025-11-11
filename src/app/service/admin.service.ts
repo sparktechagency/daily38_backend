@@ -370,6 +370,7 @@ const allPayments = async (
     profit: payment.commission || "",
     paymentStatus: payment.status || "",
     invoicePDF: payment.invoicePDF || "",
+    createdAt: payment.createdAt,
     _id: payment._id,
   }))
 
@@ -421,6 +422,8 @@ const APayments = async (
       customerName: payment?.userId?.fullName || "",
       //@ts-ignore
       invoicePDF: payment.invoicePDF || "",
+      //@ts-ignore
+      createdAt: payment.createdAt,
       //@ts-ignore
       companyName: payment.orderId.offerID.projectID.projectName || "Boolbi",
       //@ts-ignore

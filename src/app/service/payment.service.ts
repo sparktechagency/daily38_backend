@@ -232,7 +232,7 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
         select: "projectID budget",
         populate: {
           path: "projectID",
-          select: "projectName isOfferApproved isPaid isOnProject",
+          select: "projectName isOfferApproved isPaid isOnProject adminCommissionPercentage",
         },
       },
       {
@@ -272,6 +272,7 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
       orderStatus: payment.orderId.trackStatus,
       createdAt: payment.createdAt,
       invoicePDF: payment.invoicePDF || "",
+      adminCommissionPercentage: payment?.orderId?.offerID?.projectID?.adminCommissionPercentage || 0,
     };
   });
 

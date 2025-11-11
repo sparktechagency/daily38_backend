@@ -2954,14 +2954,16 @@ const getRatingsSummary = async (req: Request, res: Response) => {
     );
 
     return res.status(StatusCodes.OK).json({
-      rating: ratingsSummary[0]?.avg_rating || 0,
-      totalReviews: ratingsSummary[0]?.totalReviews || 0,
-      ratingsMap: {
-        1: ratingsMap[1] || 0,
-        2: ratingsMap[2] || 0,
-        3: ratingsMap[3] || 0,
-        4: ratingsMap[4] || 0,
-        5: ratingsMap[5] || 0,
+      data: {
+        rating: ratingsSummary[0]?.avg_rating || 0,
+        totalReviews: ratingsSummary[0]?.totalReviews || 0,
+        ratingsMap: {
+          1: ratingsMap[1] || 0,
+          2: ratingsMap[2] || 0,
+          3: ratingsMap[3] || 0,
+          4: ratingsMap[4] || 0,
+          5: ratingsMap[5] || 0,
+        },
       },
     });
   } catch (error) {

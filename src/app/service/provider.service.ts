@@ -28,7 +28,7 @@ import { AdminService } from "./admin.service";
 import {
   generatePDFKit,
   IOrderDetails,
-} from "../../util/pdf/generateInvoice";
+} from "../../util/pdf/generatePDFKit";
 
 const singleOrder = async (payload: JwtPayload, orderID: string) => {
   const { userID } = payload;

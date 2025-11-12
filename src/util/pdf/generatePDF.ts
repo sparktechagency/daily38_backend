@@ -5,8 +5,8 @@ export const generatePDF = async (htmlContent: string, paymentID: string) => {
      const browser = await puppeteer.launch({
         headless: true,
         args: [
-            '--no-sandbox', // Disable sandboxing
-            '--disable-setuid-sandbox', // Disable setuid sandboxing
+            '--no-sandbox', 
+            '--disable-setuid-sandbox', 
             '--disable-gpu', // Disable GPU hardware acceleration
             '--window-size=1280x1024', // Set a window size
         ]

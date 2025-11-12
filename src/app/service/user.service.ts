@@ -808,7 +808,7 @@ const singlePost = async (payload: JwtPayload, Data: { postID: string }) => {
   };
 };
 
-//Add to the favorite list over co
+//Add to the favorite list
 const favorite = async (payload: JwtPayload, data: { id: string }) => {
   const { userID } = payload;
   const { id } = data;

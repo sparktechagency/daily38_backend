@@ -6,8 +6,6 @@ import { USER_ROLES } from "../../enums/user.enums";
 import auth from "../../middlewares/Auth.middleware";
 import fileUploadHandler from "../../middlewares/fileUploadHandler";
 import { UserServices } from "../service/user.service";
-import { generatePDFByPuppeteer } from "../../util/pdf/generatePDF";
-import { emailTemplate } from "../../shared/emailTemplate";
 import { generatePDFKit, IOrderDetails } from "../../util/pdf/generatePDFKit";
 import config from "../../config";
 
@@ -439,11 +437,11 @@ router.route("/test-generate-pdf").post(async (req, res) => {
     adminCommissionPercentage: 10,
   };
   let resultOfGeneratePDFKit: { pdfFullPath: string; pdfPathForDB: string } = await generatePDFKit(order)
-    .then((result) => {
+    .then((result:any) => {
       console.log("PDF saved at:", result);
       return result;
     })
-    .catch((err) => console.error("Error:", err));
+    .catch((err:any) => console.error("Error:", err));
 
   res.json({
     pdfPathForDB: `${config.backendBaseUrl}${resultOfGeneratePDFKit.pdfPathForDB}`,

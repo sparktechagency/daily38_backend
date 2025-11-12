@@ -19,25 +19,30 @@ async function main() {
   try {
     // console.log("server.dev.ts🚀 ~ main ~ config.db_url_remote:", config.db_url_remote);
 
-    await mongoose
-      .connect(config.db_url_remote as string)
-      .then(
-        (response) => (
-          console.log(
-            colors.green("server.dev.ts ✅ Your Database was hosted on: ") +
-              colors.cyan(response.connection.host)
-          ),
-          console.log(
-            colors.green(
-              "server.dev.ts ✅ Your Database is running on port: "
-            ) + colors.yellow(response.connection.port.toString())
-          ),
-          console.log(
-            colors.green("server.dev.ts ✅ Your Database name is: ") +
-              colors.magenta(response.connection.name)
-          )
-        )
-      );
+    // await mongoose
+    //   .connect(config.db_url_remote as string)
+    //   .then(
+    //     (response) => (
+    //       console.log(
+    //         colors.green("server.dev.ts ✅ Your Database was hosted on: ") +
+    //           colors.cyan(response.connection.host)
+    //       ),
+    //       console.log(
+    //         colors.green(
+    //           "server.dev.ts ✅ Your Database is running on port: "
+    //         ) + colors.yellow(response.connection.port.toString())
+    //       ),
+    //       console.log(
+    //         colors.green("server.dev.ts ✅ Your Database name is: ") +
+    //           colors.magenta(response.connection.name)
+    //       )
+    //     )
+    //   );
+
+    await mongoose.connect(config.db_url_remote as string, {
+      // useNewUrlParser: true,
+      // useUnifiedTopology: true,
+    });
 
     // Seed Super Admin after database connection is successful
     await superUserCreate();

@@ -825,7 +825,7 @@ const reqestAction = async (
   console.log(
     "pdf generations stats=====at reqestAction service=======provider.service.ts==========>"
   );
-  // generate invoice for order
+  // /* // generate invoice for order
   // const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
   //   postID: project?._id,
   //   orderId: order?._id,
@@ -844,7 +844,7 @@ const reqestAction = async (
   // const { pdfFullPath, pdfPathForDB } = await generatePDF(
   //   invoiceTemplate,
   //   payment_details?._id
-  // );
+  // ); */
 
   const data: IOrderDetails = {
     postID: project?._id,

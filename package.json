@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "nodemon --legacy-watch src/server.dev.ts",
     "build": "tsc",
-    "start": "node dist/server.js"
+    "start": "node dist/server.dev.js"
   },
   "description": "",
   "devDependencies": {

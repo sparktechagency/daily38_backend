@@ -2,6 +2,7 @@ import puppeteer from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
 export const generatePDF = async (htmlContent: string, paymentID: string) => {
+     console.log("🚀 ~ generatePDF ~ paymentID:", paymentID)
      const browser = await puppeteer.launch({
         headless: true,
         args: [
@@ -21,7 +22,7 @@ export const generatePDF = async (htmlContent: string, paymentID: string) => {
 
      const rollBackToRootUploadDir = path.resolve(__dirname, './../../../uploads/');
 
-     const pdfFullPath = path.join(rollBackToRootUploadDir, 'doc', `payment_${paymentID}_invoice.pdf`);
+     const pdfFullPath = path.join(rollBackToRootUploadDir, 'doc', `payment_invoice.pdf`);
      console.log("🚀 ~ generatePDF ~ pdfPath:", pdfFullPath)
 
       // Save the PDF to disk
@@ -36,6 +37,6 @@ export const generatePDF = async (htmlContent: string, paymentID: string) => {
      // return pdfPath;
     return {
      pdfFullPath,
-     pdfPathForDB: `/doc/payment_${paymentID}_invoice.pdf`
+     pdfPathForDB: `/doc/payment_invoice.pdf`
     };
 };

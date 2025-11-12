@@ -6,6 +6,8 @@ import { USER_ROLES } from '../../enums/user.enums';
 import auth from '../../middlewares/Auth.middleware';
 import fileUploadHandler from '../../middlewares/fileUploadHandler';
 import { UserServices } from '../service/user.service';
+import { generatePDF } from '../../util/pdf/generatePDF';
+import { emailTemplate } from '../../shared/emailTemplate';
 
 const router = Router();
 
@@ -269,5 +271,37 @@ router
     )
 
 
+router.route("/test-generate-pdf").post(async (req, res) => {
+  console.log(
+    "pdf generations stats=====at reqestAction service=======provider.service.ts==========>"
+  );
+  // generate invoice for order
+  const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
+    postID:" 'project?._id'",
+    orderId:" order?._id",
+    paymentID:" payment_details?._id",
+    postName:" project?.projectName",
+    postDescription:" project?.jobDescription.slice(0, 500)",
+    customerName:" order?.customer?.fullName",
+    customerEmail:" order?.customer?.email",
+    providerName:" order?.provider?.fullName",
+    providerEmail:" order?.provider?.email",
+    totalBudgetPaidByCustomer:100,
+    adminCommission:10,
+    adminCommissionPercentage:10,
+    providerReceiveAmount:10,
+  });
+  const { pdfFullPath, pdfPathForDB } = await generatePDF(
+    invoiceTemplate,
+    "payment_details?._id"
+  );
+
+  console.log(
+    "pdf generations ends=====at reqestAction service=======provider.service.ts==========>"
+  );
+  res.json({
+    path: `https://asif7003.binarybards.online${pdfPathForDB}`,
+  });
+});
 
 export const UserRouter = router;

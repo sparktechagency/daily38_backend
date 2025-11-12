@@ -819,7 +819,7 @@ const reqestAction = async (
     project?.adminCommissionPercentage ||
     (await AdminService.adminCommission());
 
-
+console.log("pdf generations stats=====at reqestAction service=======provider.service.ts==========>")
   // generate invoice for order
   const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
     postID: project?._id,
@@ -884,6 +884,7 @@ const reqestAction = async (
     attachments: valuesProvider.attachments,
   });
 
+console.log("pdf generations ends=====at reqestAction service=======provider.service.ts==========>")
   payment_details.invoicePDF = pdfPathForDB;
   await payment_details.save();
 

@@ -22,10 +22,13 @@ import { transfers } from "../router/payment.route";
 import { makeAmountWithFee } from "../../helpers/fee";
 import Post from "../../model/post.model";
 import { emailTemplate } from "../../shared/emailTemplate";
-import { generatePDF } from "../../util/pdf/generatePDF";
 import { emailHelper } from "../../helpers/emailHelper";
 import fs from "fs";
 import { AdminService } from "./admin.service";
+import {
+  generatePDFKit,
+  IOrderDetails,
+} from "../../util/pdf/generateInvoice";
 
 const singleOrder = async (payload: JwtPayload, orderID: string) => {
   const { userID } = payload;
@@ -643,7 +646,7 @@ const reqestAction = async (
   if (!isUser) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
   }
-  
+
   if (
     isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
     isUser.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -700,15 +703,16 @@ const reqestAction = async (
       },
     ]);
 
-    const project = await Post.findById(order.offerID.projectID).select("adminCommissionPercentage projectName jobDescription");
-   
+  const project = await Post.findById(order.offerID.projectID).select(
+    "adminCommissionPercentage projectName jobDescription"
+  );
 
-    if (!project) {
-      throw new ApiError(StatusCodes.NOT_FOUND, "We don't found the project!");
-    }
-    
+  if (!project) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "We don't found the project!");
+  }
+
   // delete all the notifications
-  
+
   await Notification.deleteMany({
     requestId: new mongoose.Types.ObjectId(requestID),
   });
@@ -737,7 +741,6 @@ const reqestAction = async (
 
   const amountAfterFee = (budget - adminAmount) * 100;
 
-  
   if (!order.provider.paymentCartDetails) {
     throw new ApiError(
       StatusCodes.CONFLICT,
@@ -819,9 +822,31 @@ const reqestAction = async (
     project?.adminCommissionPercentage ||
     (await AdminService.adminCommission());
 
-console.log("pdf generations stats=====at reqestAction service=======provider.service.ts==========>")
+  console.log(
+    "pdf generations stats=====at reqestAction service=======provider.service.ts==========>"
+  );
   // generate invoice for order
-  const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
+  // const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
+  //   postID: project?._id,
+  //   orderId: order?._id,
+  //   paymentID: payment_details?._id,
+  //   postName: project?.projectName,
+  //   postDescription: project?.jobDescription.slice(0, 500) || "",
+  //   customerName: order?.customer?.fullName,
+  //   customerEmail: order?.customer?.email,
+  //   providerName: order?.provider?.fullName,
+  //   providerEmail: order?.provider?.email,
+  //   totalBudgetPaidByCustomer: order?.offerID?.budget,
+  //   adminCommission: adminAmount,
+  //   adminCommissionPercentage,
+  //   providerReceiveAmount: amountAfterFee,
+  // });
+  // const { pdfFullPath, pdfPathForDB } = await generatePDF(
+  //   invoiceTemplate,
+  //   payment_details?._id
+  // );
+
+  const data: IOrderDetails = {
     postID: project?._id,
     orderId: order?._id,
     paymentID: payment_details?._id,
@@ -835,12 +860,15 @@ console.log("pdf generations stats=====at reqestAction service=======provider.se
     adminCommission: adminAmount,
     adminCommissionPercentage,
     providerReceiveAmount: amountAfterFee,
-  });
-  const { pdfFullPath, pdfPathForDB } = await generatePDF(
-    invoiceTemplate,
-    payment_details?._id
-  );
-  const fileBuffer = fs.readFileSync(pdfFullPath);
+  };
+  let resultOfGeneratePDFKit: { pdfFullPath: string; pdfPathForDB: string } =
+    await generatePDFKit(data)
+      .then((result) => {
+        console.log("PDF saved at:", result);
+        return result;
+      })
+      .catch((err) => console.error("Error:", err));
+  const fileBuffer = fs.readFileSync(resultOfGeneratePDFKit.pdfFullPath);
 
   const values = {
     name: order?.customer?.fullName as string,
@@ -884,8 +912,10 @@ console.log("pdf generations stats=====at reqestAction service=======provider.se
     attachments: valuesProvider.attachments,
   });
 
-console.log("pdf generations ends=====at reqestAction service=======provider.service.ts==========>")
-  payment_details.invoicePDF = pdfPathForDB;
+  console.log(
+    "pdf generations ends=====at reqestAction service=======provider.service.ts==========>"
+  );
+  payment_details.invoicePDF = resultOfGeneratePDFKit.pdfPathForDB;
   await payment_details.save();
 
   return true;

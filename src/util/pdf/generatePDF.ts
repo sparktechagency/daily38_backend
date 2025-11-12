@@ -1,7 +1,7 @@
 import puppeteer from 'puppeteer';
 import path from 'path';
 import fs from 'fs';
-export const generatePDF = async (htmlContent: string, paymentID: string) => {
+export const generatePDFByPuppeteer = async (htmlContent: string, paymentID: string) => {
     console.log("welcome generatePDF function. hit hoise____________________")
      const browser = await puppeteer.launch({
         headless: true,

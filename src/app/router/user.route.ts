@@ -300,7 +300,7 @@ router.route("/test-generate-pdf").post(async (req, res) => {
     "pdf generations ends=====at reqestAction service=======provider.service.ts==========>"
   );
   res.json({
-    path: `https://asif7003.binarybards.online${pdfPathForDB}`,
+    path: `http://217.154.77.17:3000${pdfPathForDB}`,
   });
 });
 

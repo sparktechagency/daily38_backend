@@ -8,7 +8,7 @@ import fileUploadHandler from "../../middlewares/fileUploadHandler";
 import { UserServices } from "../service/user.service";
 import { generatePDFByPuppeteer } from "../../util/pdf/generatePDF";
 import { emailTemplate } from "../../shared/emailTemplate";
-import { generatePDFKit, IOrderDetails } from "../../util/pdf/generateInvoice";
+import { generatePDFKit, IOrderDetails } from "../../util/pdf/generatePDFKit";
 import config from "../../config";
 
 const router = Router();

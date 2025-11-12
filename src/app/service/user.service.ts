@@ -759,8 +759,8 @@ const singlePost = async (payload: JwtPayload, Data: { postID: string }) => {
   const post = await Post.findById(Data.postID)
     .populate({
       path: "acceptedOffer",
-      // select:
-      //   "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
+      select:
+        "-to -projectID -updatedAt -createdAt -jobLocation -deadline -validFor -startDate -endDate -__v -status -companyImages",
       populate: {
         path: "form to",
         select: "fullName profileImage",
@@ -802,9 +802,9 @@ const singlePost = async (payload: JwtPayload, Data: { postID: string }) => {
     isOfferPaid: offerStatus?.status == OFFER_STATUS.PAID ? true : false,
     chatID: chat ? chat._id : "", //@ts-ignore
     oppositeUser:
-      (post.acceptedOffer as any)?.to?._id?.toString() == isUserExist._id.toString()
-        ? (post.acceptedOffer as any)?.form || null
-        : (post.acceptedOffer as any)?.to || null,
+      post.acceptedOffer?.to?._id?.toString() == isUserExist._id.toString()
+        ? post.acceptedOffer?.form || null
+        : post.acceptedOffer?.to || null,
   };
 };
 
@@ -1625,7 +1625,7 @@ const intracatOffer = async (
     }
   }
 
-  if (isOfferExist.status === OFFER_STATUS.DECLINE) {
+  if (isOfferExist.status === "APPROVE") {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer already accepted!");
   }
 
@@ -2625,7 +2625,7 @@ const aProvider = async (payload: JwtPayload, id: string) => {
 
   //@ts-ignore
   const isFavorite =
-    user?.favouriteProvider?.filter(
+    (user?.favouriteProvider as any)?.filter(
       (favId: any) => favId.toString() == provider._id.toString()
     ) || false;
 

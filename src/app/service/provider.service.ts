@@ -863,11 +863,11 @@ const reqestAction = async (
   };
   let resultOfGeneratePDFKit: { pdfFullPath: string; pdfPathForDB: string } =
     await generatePDFKit(data)
-      .then((result) => {
+      .then((result:any) => {
         console.log("PDF saved at:", result);
         return result;
       })
-      .catch((err) => console.error("Error:", err));
+      .catch((err:any) => console.error("Error:", err));
   const fileBuffer = fs.readFileSync(resultOfGeneratePDFKit.pdfFullPath);
 
   const values = {

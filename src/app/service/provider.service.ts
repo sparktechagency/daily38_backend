@@ -643,11 +643,7 @@ const reqestAction = async (
   if (!isUser) {
     throw new ApiError(StatusCodes.NOT_FOUND, "User not exist!");
   }
-  console.log("🚀 ~ reqestAction ~ who am i:", isUser._id, isUser.role);
-  console.log(`🚀 ~ reqestAction ~ { acction, requestID }:`, {
-    acction,
-    requestID,
-  });
+  
   if (
     isUser.accountStatus === ACCOUNT_STATUS.DELETE ||
     isUser.accountStatus === ACCOUNT_STATUS.BLOCK
@@ -689,10 +685,10 @@ const reqestAction = async (
       {
         path: "offerID",
         select: "budget projectID",
-        populate: {
-          path: "projectID",
-          select: "adminCommissionPercentage projectName jobDescription",
-        },
+        // populate: {
+        //   path: "projectID",
+        //   select: "adminCommissionPercentage projectName jobDescription",
+        // },
       },
       {
         path: "customer",
@@ -703,17 +699,16 @@ const reqestAction = async (
         select: "fullName email paymentCartDetails",
       },
     ]);
-  console.log("🚀 ~ reqestAction ~ order:", {
-    _id: order._id,
-    trackisComplitedStatus: order.trackStatus.isComplited.status,
-  });
-  console.log("🚀 ~ reqestAction ~ order.offerID._id:", order.offerID._id);
-  // if order.trackStatus.isComplited.status == true
+
+    const project = await Post.findById(order.offerID.projectID).select("adminCommissionPercentage projectName jobDescription");
+   
+
+    if (!project) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "We don't found the project!");
+    }
+    
   // delete all the notifications
-  const notifications_requestId = await Notification.find({
-    requestId: new mongoose.Types.ObjectId(requestID),
-  });
-  console.log("🚀 ~ reqestAction ~ notification:", notifications_requestId);
+  
   await Notification.deleteMany({
     requestId: new mongoose.Types.ObjectId(requestID),
   });
@@ -742,10 +737,7 @@ const reqestAction = async (
 
   const amountAfterFee = (budget - adminAmount) * 100;
 
-  console.log(
-    "🚀 ~ reqestAction ~ order.provider.paymentCartDetails:",
-    order.provider.paymentCartDetails
-  );
+  
   if (!order.provider.paymentCartDetails) {
     throw new ApiError(
       StatusCodes.CONFLICT,
@@ -824,16 +816,17 @@ const reqestAction = async (
   }
 
   const adminCommissionPercentage =
-    (order?.offerID?.projectID as any)?.adminCommissionPercentage ||
+    project?.adminCommissionPercentage ||
     (await AdminService.adminCommission());
+
 
   // generate invoice for order
   const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
-    postID: order?.offerID?.projectID?._id,
+    postID: project?._id,
     orderId: order?._id,
     paymentID: payment_details?._id,
-    postName: order?.offerID?.projectID?.projectName,
-    postDescription: order?.offerID?.projectID?.jobDescription,
+    postName: project?.projectName,
+    postDescription: project?.jobDescription.slice(0, 500) || "",
     customerName: order?.customer?.fullName,
     customerEmail: order?.customer?.email,
     providerName: order?.provider?.fullName,

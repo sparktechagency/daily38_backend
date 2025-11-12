@@ -259,6 +259,7 @@ const PaymentVerify = catchAsync(
         await user1.save();
         await user2.save();
 
+console.log("test stats=====at paymentVerify controller=======payment.controller.ts==========>")
         const paymentForAdminView = await Payment.create({
             userId: user._id,
             orderId: order._id,

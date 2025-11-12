@@ -20,7 +20,7 @@ async function main() {
     // console.log("server.dev.ts🚀 ~ main ~ config.db_url_remote:", config.db_url_remote);
 
     await mongoose
-      .connect(`mongodb://localhost:27017/boolbi`)
+      .connect(config.db_url_remote as string)
       .then(
         (response) => (
           console.log(

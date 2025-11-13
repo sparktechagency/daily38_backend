@@ -748,6 +748,14 @@ const reqestAction = async (
     );
   }
 
+  await transfers.create({
+    amount: Math.round(amountAfterFee),
+    currency: "usd",
+    destination: order.provider.paymentCartDetails,
+    transfer_group: `order_${order._id}`,
+  });
+
+
   delivaryRequest.requestStatus = acction;
   delivaryRequest.isValid = true;
   await delivaryRequest.save();
@@ -764,13 +772,6 @@ const reqestAction = async (
     },
     { new: true }
   );
-
-  await transfers.create({
-    amount: Math.round(amountAfterFee),
-    currency: "usd",
-    destination: order.provider.paymentCartDetails,
-    transfer_group: `order_${order._id}`,
-  });
 
   if (!delivaryRequest) {
     throw new ApiError(

@@ -87,7 +87,7 @@ const emailSend = async (
       
     return { email:isUser.email };
 }
-
+// 🏃‍♀️‍➡️
 const verifyOtp = async (
     payload : { 
         email: string, 
@@ -102,8 +102,8 @@ const verifyOtp = async (
     };
 
     if (
-        !otp && 
-        !isUser.otpVerification.otp &&
+        !otp || 
+        !isUser.otpVerification.otp ||
         isUser.otpVerification.time < new Date( Date.now() )
     ) {
         throw new ApiError(

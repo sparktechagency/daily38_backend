@@ -20,6 +20,8 @@ import Order from "../../model/order.model";
 import { PaginationParams } from "../../types/user";
 import mongoose from "mongoose";
 import { IUser } from "../../Interfaces/User.interface";
+import Chat from "../../model/chat.model";
+import Message from "../../model/message.model";
 
 const overview = async (payload: JwtPayload, revenueYear = "2025", userJoinedYear = "2025") => {
   const { userID } = payload;
@@ -259,19 +261,24 @@ const updateUserAccountStatus = async (
     if (!isAdmin || ( isAdmin.role !== USER_ROLES.ADMIN && isAdmin.role !== USER_ROLES.SUPER_ADMIN)) {
         throw new ApiError(StatusCodes.NOT_FOUND, "Admin not found");
     };
-    const customer = await User.findById(customerID);
-    if (!customer) {
+    const isExistUser = await User.findById(customerID);
+    if (!isExistUser) {
         throw new ApiError(StatusCodes.BAD_REQUEST,"Customer not exist")
     };
 
-    customer.accountStatus = acction;
+    // 🏃‍♀️‍➡️
+    isExistUser.accountStatus = acction;
     if (acction === ACCOUNT_STATUS.DELETE) {
-      customer.email = "deleted_" + customer.email;
-      customer.fullName = "deleted_" + customer.fullName;
-      customer.phone = "deleted_" + customer.phone;
-      customer.profileImage = "deleted_" + customer.profileImage;
+      isExistUser.email = "deleted_" + isExistUser.email;
+      isExistUser.fullName = "Anonymous";
+      isExistUser.phone = "deleted_" + isExistUser.phone;
+      isExistUser.profileImage = "";
+
+      // delte all chats
+      await Message.deleteMany({ sender: isExistUser._id });
+      // await Chat.deleteMany({ users: {$in: [isExistUser._id]} });
     }
-    await customer.save();
+    await isExistUser.save();
 
     return true;
 
@@ -1157,13 +1164,33 @@ const giveSupport = async (
       content: `You got a replay from the support request!`
     });
         
-    io.emit(`socket:support:${ support.for }`, {
+    // io.emit(`socket:support:${ support.for }`, {
+    //   image: support.image,
+    //   isAdmin: support.isAdmin,
+    //   message: support.message,
+    //   isImage: support.isAdmin,
+    //   category: support.category,
+    // });
+// 🏃‍♀️‍➡️
+    if(support.image){
+      io.emit(`socket:support:${ support.for }`, {
       image: support.image,
+      isAdmin: support.isAdmin,
+      message: "",
+      isImage: support.isAdmin,
+      category: support.category,
+    });
+    }
+
+    if(support.message){
+      io.emit(`socket:support:${ support.for }`, {
+      image: "",
       isAdmin: support.isAdmin,
       message: support.message,
       isImage: support.isAdmin,
       category: support.category,
     });
+    }
 
     if (!support) {
       throw new ApiError(

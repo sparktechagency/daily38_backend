@@ -826,26 +826,6 @@ const reqestAction = async (
   console.log(
     "pdf generations stats=====at reqestAction service=======provider.service.ts==========>"
   );
-  // /* // generate invoice for order
-  // const invoiceTemplate = emailTemplate.paymentHtmlInvoice({
-  //   postID: project?._id,
-  //   orderId: order?._id,
-  //   paymentID: payment_details?._id,
-  //   postName: project?.projectName,
-  //   postDescription: project?.jobDescription.slice(0, 500) || "",
-  //   customerName: order?.customer?.fullName,
-  //   customerEmail: order?.customer?.email,
-  //   providerName: order?.provider?.fullName,
-  //   providerEmail: order?.provider?.email,
-  //   totalBudgetPaidByCustomer: order?.offerID?.budget,
-  //   adminCommission: adminAmount,
-  //   adminCommissionPercentage,
-  //   providerReceiveAmount: amountAfterFee,
-  // });
-  // const { pdfFullPath, pdfPathForDB } = await generatePDF(
-  //   invoiceTemplate,
-  //   payment_details?._id
-  // ); */
 
   const data: IOrderDetails = {
     postID: project?._id,

@@ -10,6 +10,7 @@ const jobPostSchema = new Schema<IPost>(
     },
     isDeleted: {
       type: Boolean,
+      default: false,
     },
     isOfferApproved: {
       type: Boolean,
@@ -104,13 +105,14 @@ const jobPostSchema = new Schema<IPost>(
 jobPostSchema.index({ latLng: "2dsphere" });
 
 // ignore isDelete ture on find
-jobPostSchema.pre("find", function () {
-  this.where({ isDeleted: false });
-});
+// jobPostSchema.pre("find", function () {
+//   this.where({ isDeleted: false });
+// });
 // set the default value of the field adminCommissionPercentage in pre middaleware from const adminCommissionPercentage = await AdminService.adminCommission()
 jobPostSchema.pre("save", async function () {
   const adminCommission = await AdminService.adminCommission();
   this.adminCommissionPercentage = adminCommission;
+  this.isDeleted = false;
 });
 const Post = model<IPost>("post", jobPostSchema);
 export default Post;

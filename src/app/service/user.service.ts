@@ -39,6 +39,7 @@ import Chat from "../../model/chat.model";
 import { IOffer, TrackOfferType } from "../../Interfaces/offer.interface";
 import Message from "../../model/message.model";
 import { AdminService } from "./admin.service";
+import Payment from "../../model/payment.model";
 // import { calculateDistanceInKm } from "../../helpers/calculationCount";
 
 //User signUp
@@ -794,11 +795,25 @@ const singlePost = async (payload: JwtPayload, Data: { postID: string }) => {
   }
 
   const offerStatus = await Offer.findById(post.acceptedOffer).lean();
+  // get invoicePDF
+  let invoicePDF = ""
+  // finder orderByOfferId find paymentByOrderId
+  console.log("🚀 ~ singlePost ~ offerStatus?._id:", offerStatus?._id)
+  const orderOfthisOffer = await Order.findOne({offerID: offerStatus?._id}).select("_id").lean();
+  console.log("🚀 ~ singlePost ~ orderOfthisOffer:", orderOfthisOffer)
+  if (orderOfthisOffer) {
+    const paymentByOrderId = await Payment.findOne({orderId: (orderOfthisOffer as any)._id}).lean();
+    console.log("🚀 ~ singlePost ~ paymentByOrderId:", paymentByOrderId)
+    if ((paymentByOrderId as any)?.invoicePDF) {
+      invoicePDF = (paymentByOrderId as any)?.invoicePDF;
+    }
+  }
 
   //@ts-ignore
   delete postData?.creatorID;
   return {
     ...postData,
+    invoicePDF,
     isOfferPaid: offerStatus?.status == OFFER_STATUS.PAID ? true : false,
     chatID: chat ? chat._id : "", //@ts-ignore
     oppositeUser:
@@ -2629,26 +2644,28 @@ const aProvider = async (payload: JwtPayload, id: string) => {
       (favId: any) => favId.toString() == provider._id.toString()
     ) || false;
 
-  const enrichedRatings = await Promise.all(
-    (provider.ratings || []).map(async (rating: any) => {
-      try {
-        if (!rating.from) return rating;
+  // const enrichedRatings = await Promise.all(
+  //   (provider.ratings || []).map(async (rating: any) => {
+  //     try {
+  //       if (!rating.from) return rating;
 
-        const order = await User.findById(rating.from)
-          .select("fullName profileImage email")
-          .lean();
+  //       const order = await User.findById(rating.from)
+  //         .select("fullName profileImage email")
+  //         .lean();
 
-        return {
-          ...rating,
-          customer: order || null,
-        };
-      } catch (err) {
-        console.error("Failed to fetch order/customer for rating:", err);
-        return rating;
-      }
-    })
-  );
+  //       return {
+  //         ...rating,
+  //         customer: order || null,
+  //       };
+  //     } catch (err) {
+  //       console.error("Failed to fetch order/customer for rating:", err);
+  //       return rating;
+  //     }
+  //   })
+  // );
 
+
+  const enrichedRatings = await RatingModel.find({ provider: provider._id }).lean();
   const chat = await Chat.findOne({
     users: [
       new mongoose.Types.ObjectId(payload.userID),
@@ -2660,7 +2677,7 @@ const aProvider = async (payload: JwtPayload, id: string) => {
   const totalServices = await Order.countDocuments({ provider: provider._id });
   const totalReviews = enrichedRatings.length;
   const totalStars = enrichedRatings.reduce(
-    (acc, cur) => acc + (cur.star || 0),
+    (acc, cur) => acc + (cur.rating || 0),
     0
   );
   const agvRating = totalReviews > 0 ? totalStars / totalReviews : null;
@@ -2668,8 +2685,8 @@ const aProvider = async (payload: JwtPayload, id: string) => {
   return {
     ...provider,
     ratings: enrichedRatings,
-    totalReviews,
-    agvRating,
+    totalReviews, // *
+    agvRating, // *
     chatID: chats,
     totalServices,
     isFavorite: isFavorite.length > 0 ? true : false,
@@ -2686,7 +2703,7 @@ const allPost = async (payload: JwtPayload, pagination: any) => {
 
   const { page = 1, limit = 10 } = pagination;
   const skip = (page - 1) * limit;
-  const total = await Post.countDocuments({});
+  // const total = await Post.countDocuments({});
   const results = await Post.find()
     .select("-latLng")
     .limit(limit)
@@ -2696,9 +2713,9 @@ const allPost = async (payload: JwtPayload, pagination: any) => {
 
   return {
     data: results,
-    total,
+    total: results.length,
     currentPage: page,
-    totalPages: Math.ceil(total / limit),
+    totalPages: Math.ceil(results.length / limit),
   };
 };
 

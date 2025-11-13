@@ -851,26 +851,7 @@ const reqestAction = async (
       .catch((err:any) => console.error("Error:", err));
   const fileBuffer = fs.readFileSync(resultOfGeneratePDFKit.pdfFullPath);
 
-  const values = {
-    name: order?.customer?.fullName as string,
-    email: order?.customer?.email as string,
-    booking: order,
-    attachments: [
-      {
-        filename: `invoice-${order?._id}.pdf`,
-        // content: invoicePDF,
-        content: fileBuffer,
-        contentType: "application/pdf",
-      },
-    ],
-  };
-
-  // for customer
-  const emailTemplateData = emailTemplate.paymentInvoice(values);
-  emailHelper.sendEmail({
-    ...emailTemplateData,
-    attachments: values.attachments,
-  });
+  
 
   // for provider
   const valuesProvider = {
@@ -984,7 +965,7 @@ const providerAccountVerification = async (
   images: string[],
   doc?: string
 ) => {
-  // 🏃‍♀️‍➡️
+  
   if (!images || images.length < 1) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,

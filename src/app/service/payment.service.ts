@@ -247,7 +247,7 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
       },
     ],
   });
-  // .limit(1); // 🏃‍♀️‍➡️ need to remove this limitation
+  
   if (!payments) {
     throw new ApiError(StatusCodes.BAD_GATEWAY, "We didn't find the payments!");
   }

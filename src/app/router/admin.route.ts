@@ -152,7 +152,7 @@ router
         validateRequest( AdminValidation.updatedtermsConditions ),
         AdminController.editeConditions
     )
-// 🏃‍♀️‍➡️
+    
 router
     .route("/admin-commission")
     .get(

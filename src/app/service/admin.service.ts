@@ -1242,7 +1242,7 @@ const intractVerificationRequest = async (
   requestId: string,
   acction: "APPROVE" | "DECLINE"
 ) => {
-  // 🏃‍♀️‍➡️
+
   const { userID } = payload;
   const isAdmin = await User.findById( userID );
   if (

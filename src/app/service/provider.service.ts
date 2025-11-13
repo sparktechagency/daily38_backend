@@ -800,11 +800,7 @@ const reqestAction = async (
   io.emit(`socket:${order.provider._id}`, notification);
 
   let payment_details = await Payment.findOne({
-    userId: order.customer,
     orderId: order._id,
-    amount: budget,
-    commission: adminAmount,
-    status: { $ne: PAYMENT_STATUS.SUCCESS },
   });
   if (payment_details) {
     payment_details.status = PAYMENT_STATUS.SUCCESS;

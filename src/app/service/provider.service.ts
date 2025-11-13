@@ -25,10 +25,7 @@ import { emailTemplate } from "../../shared/emailTemplate";
 import { emailHelper } from "../../helpers/emailHelper";
 import fs from "fs";
 import { AdminService } from "./admin.service";
-import {
-  generatePDFKit,
-  IOrderDetails,
-} from "../../util/pdf/generatePDFKit";
+import { generatePDFKit, IOrderDetails } from "../../util/pdf/generatePDFKit";
 
 const singleOrder = async (payload: JwtPayload, orderID: string) => {
   const { userID } = payload;
@@ -711,11 +708,6 @@ const reqestAction = async (
     throw new ApiError(StatusCodes.NOT_FOUND, "We don't found the project!");
   }
 
-  // delete all the notifications
-
-  await Notification.deleteMany({
-    requestId: new mongoose.Types.ObjectId(requestID),
-  });
   // thorw err
   // throw new Error("tesersdfsdf");
 
@@ -755,23 +747,22 @@ const reqestAction = async (
     transfer_group: `order_${order._id}`,
   });
 
-
   delivaryRequest.requestStatus = acction;
   delivaryRequest.isValid = true;
   await delivaryRequest.save();
 
-  await Order.findByIdAndUpdate(
-    order._id,
-    {
-      trackStatus: {
-        isComplited: {
-          date: new Date(),
-          status: true,
-        },
-      },
-    },
-    { new: true }
-  );
+  // await Order.findByIdAndUpdate(
+  //   order._id,
+  //   {
+  //     trackStatus: {
+  //       isComplited: {
+  //         date: new Date(),
+  //         status: true,
+  //       },
+  //     },
+  //   },
+  //   { new: true }
+  // );
 
   if (!delivaryRequest) {
     throw new ApiError(
@@ -782,6 +773,34 @@ const reqestAction = async (
   if (!order) {
     throw new ApiError(StatusCodes.NOT_FOUND, "We don't found the order!");
   }
+
+  let payment_details = await Payment.findOne({
+    orderId: order._id,
+  });
+  if (payment_details) {
+    if (payment_details.stats == PAYMENT_STATUS.SUCCESS) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Payment already successfull!"
+      );
+    }
+    payment_details.status = PAYMENT_STATUS.SUCCESS;
+    await payment_details.save();
+  } else {
+    payment_details = await Payment.create({
+      userId: order.customer,
+      orderId: order._id,
+      amount: budget,
+      commission: adminAmount,
+      status: PAYMENT_STATUS.SUCCESS,
+    });
+  }
+
+  
+  // delete all the notifications
+  await Notification.deleteMany({
+    requestId: new mongoose.Types.ObjectId(delivaryRequest._id),
+  });
 
   const notification = await Notification.create({
     for: order.provider._id,
@@ -798,22 +817,6 @@ const reqestAction = async (
   //@ts-ignore
   const io = global.io;
   io.emit(`socket:${order.provider._id}`, notification);
-
-  let payment_details = await Payment.findOne({
-    orderId: order._id,
-  });
-  if (payment_details) {
-    payment_details.status = PAYMENT_STATUS.SUCCESS;
-    await payment_details.save();
-  } else {
-    payment_details = await Payment.create({
-      userId: order.customer,
-      orderId: order._id,
-      amount: budget,
-      commission: adminAmount,
-      status: PAYMENT_STATUS.SUCCESS,
-    });
-  }
 
   const adminCommissionPercentage =
     project?.adminCommissionPercentage ||
@@ -840,14 +843,12 @@ const reqestAction = async (
   };
   let resultOfGeneratePDFKit: { pdfFullPath: string; pdfPathForDB: string } =
     await generatePDFKit(data)
-      .then((result:any) => {
+      .then((result: any) => {
         console.log("PDF saved at:", result);
         return result;
       })
-      .catch((err:any) => console.error("Error:", err));
+      .catch((err: any) => console.error("Error:", err));
   const fileBuffer = fs.readFileSync(resultOfGeneratePDFKit.pdfFullPath);
-
-  
 
   // for provider
   const valuesProvider = {
@@ -961,7 +962,6 @@ const providerAccountVerification = async (
   images: string[],
   doc?: string
 ) => {
-  
   if (!images || images.length < 1) {
     throw new ApiError(
       StatusCodes.BAD_REQUEST,

@@ -690,6 +690,14 @@ const deleteJob = async (payload: JwtPayload, Data: { postID: string }) => {
   if (!post) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Post not found");
   }
+  // has any order
+  const hasOrder = await Order.findOne({ offerID: post.acceptedOffer });
+  if (hasOrder) {
+    throw new ApiError(
+      StatusCodes.FORBIDDEN,
+      "This post has already been ordered"
+    );
+  }
 
   if (
     payload.role !== USER_ROLES.SUPER_ADMIN &&

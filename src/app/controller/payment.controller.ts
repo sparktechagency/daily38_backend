@@ -291,11 +291,54 @@ const PaymentRecords = catchAsync(
     }
 )
 
+
+const stripeLoginLink = catchAsync(
+    async( req: Request, res: Response ) => {
+        const result = await PaymentService.stripeLoginLink(req.user);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get stripe login link",
+            data: result
+        });
+    }
+)
+
+const stripeTransactionsStatement = catchAsync(
+    async( req: Request, res: Response ) => {
+        const result = await PaymentService.stripeTransactionsStatement(req.user);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the payments",
+            data: result
+        });
+    }
+)
+
+const stripeTransactionsWithdraw = catchAsync(
+    async( req: Request, res: Response ) => {
+        const result = await PaymentService.stripeTransactionsWithdraw(req.user,req.body as any);
+
+        sendResponse(res, {
+            success: true,
+            statusCode: StatusCodes .OK,
+            message: "Successfully get all the payments",
+            data: result
+        });
+    }
+)
+
 export const PaymentController = {
     payForService,
     PaymentVerify,
     verifyUser,
     refreshSesstion,
     successFullSession,
-    PaymentRecords
+    PaymentRecords,
+    stripeLoginLink,
+    stripeTransactionsStatement,
+    stripeTransactionsWithdraw
 }

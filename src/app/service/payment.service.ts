@@ -17,6 +17,10 @@ import Payment from "../../model/payment.model";
 import mongoose from "mongoose";
 import { AdminService } from "./admin.service";
 import Post from "../../model/post.model";
+import Stripe from "stripe";
+import config from "../../config";
+
+export const stripe = new Stripe(config.strip_secret_key!);
 
 const createSession = async (
   payload: JwtPayload,
@@ -46,7 +50,10 @@ const createSession = async (
     );
   }
 
-  const offer = await Offer.findById(data.offerID).populate("projectID","adminCommissionPercentage");
+  const offer = await Offer.findById(data.offerID).populate(
+    "projectID",
+    "adminCommissionPercentage"
+  );
   if (!offer) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Offer not founded!");
   }
@@ -73,8 +80,10 @@ const createSession = async (
     },
   ];
 
-
-  const adminComission = await makeAmountWithFee(Number(offer.budget),(offer.projectID as any)?.adminCommissionPercentage || undefined);
+  const adminComission = await makeAmountWithFee(
+    Number(offer.budget),
+    (offer.projectID as any)?.adminCommissionPercentage || undefined
+  );
 
   // Create checkout session
   const session = await checkout.sessions.create({
@@ -196,7 +205,10 @@ const payoutToUser = async (payload: JwtPayload, orderID: any) => {
     );
   }
 
-  const adminAmount = await makeAmountWithFee(Number(order.offerID.budget),(order?.offerID?.projectID as any)?.adminCommissionPercentage || undefined);
+  const adminAmount = await makeAmountWithFee(
+    Number(order.offerID.budget),
+    (order?.offerID?.projectID as any)?.adminCommissionPercentage || undefined
+  );
 
   const providerAmount = Number(order.offerID.budget) - adminAmount;
 
@@ -217,37 +229,48 @@ const payoutToUser = async (payload: JwtPayload, orderID: any) => {
   return transfer;
 };
 
-const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLETED') => {
-    if (user.role === USER_ROLES.SERVICE_PROVIDER && !queryStatus) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "You must provide the query status! 'PENDING' | 'COMPLETED'");
-    }
-    if (user.role === USER_ROLES.USER && queryStatus) {
-        throw new ApiError(StatusCodes.BAD_REQUEST, "You can't provide the query status! 'PENDING' | 'COMPLETED'");
-    }
+const PaymentRecords = async (
+  user: JwtPayload,
+  queryStatus: "PENDING" | "COMPLETED"
+) => {
+  if (user.role === USER_ROLES.SERVICE_PROVIDER && !queryStatus) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "You must provide the query status! 'PENDING' | 'COMPLETED'"
+    );
+  }
+  if (user.role === USER_ROLES.USER && queryStatus) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "You can't provide the query status! 'PENDING' | 'COMPLETED'"
+    );
+  }
 
-  const payments = await Payment.find().sort({ createdAt: -1 }).populate({
-    path: "orderId",
-    select: "trackStatus offerID customer provider",
-    populate: [
-      {
-        path: "offerID",
-        select: "projectID budget",
-        // populate: {
-        //   path: "projectID",
-        //   select: "projectName isOfferApproved isPaid isOnProject adminCommissionPercentage",
-        // },
-      },
-      {
-        path: "customer",
-        select: "fullName",
-      },
-      {
-        path: "provider",
-        select: "fullName",
-      },
-    ],
-  });
-  
+  const payments = await Payment.find()
+    .sort({ createdAt: -1 })
+    .populate({
+      path: "orderId",
+      select: "trackStatus offerID customer provider",
+      populate: [
+        {
+          path: "offerID",
+          select: "projectID budget",
+          // populate: {
+          //   path: "projectID",
+          //   select: "projectName isOfferApproved isPaid isOnProject adminCommissionPercentage",
+          // },
+        },
+        {
+          path: "customer",
+          select: "fullName",
+        },
+        {
+          path: "provider",
+          select: "fullName",
+        },
+      ],
+    });
+
   if (!payments) {
     throw new ApiError(StatusCodes.BAD_GATEWAY, "We didn't find the payments!");
   }
@@ -261,7 +284,6 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
     }
   });
 
-  
   const currentAdminCommissionPercentage = await AdminService.adminCommission();
 
   // const structuredReocrds = records.map((payment) => {
@@ -281,36 +303,35 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
   //   };
   // });
 
-  
   const structuredReocrds = await Promise.all(
-  records.map(async payment => {
-    const projectId = payment?.orderId?.offerID?.projectID
-    const project = projectId
-      ? await Post.findById(projectId)
-          .select('projectName adminCommissionPercentage')
-          .lean()
-          .exec()
-      : null
+    records.map(async (payment) => {
+      const projectId = payment?.orderId?.offerID?.projectID;
+      const project = projectId
+        ? await Post.findById(projectId)
+            .select("projectName adminCommissionPercentage")
+            .lean()
+            .exec()
+        : null;
 
-    const adminCommissionPercentage =
-      project?.adminCommissionPercentage ?? currentAdminCommissionPercentage
+      const adminCommissionPercentage =
+        project?.adminCommissionPercentage ?? currentAdminCommissionPercentage;
 
-    return {
-      paymentId: payment._id,
-      postName: project?.projectName || '',
-      customerName: payment?.orderId?.customer?.fullName || '',
-      providerName: payment?.orderId?.provider?.fullName || '',
-      fullPaidAmount: payment.amount,
-      commission: payment.commission,
-      providerRecievedAmount: payment.amount - payment.commission,
-      paymentStatus: payment.status,
-      orderStatus: payment.orderId?.trackStatus,
-      createdAt: payment.createdAt,
-      invoicePDF: payment.invoicePDF || '',
-      adminCommissionPercentage,
-    }
-  })
-)
+      return {
+        paymentId: payment._id,
+        postName: project?.projectName || "",
+        customerName: payment?.orderId?.customer?.fullName || "",
+        providerName: payment?.orderId?.provider?.fullName || "",
+        fullPaidAmount: payment.amount,
+        commission: payment.commission,
+        providerRecievedAmount: payment.amount - payment.commission,
+        paymentStatus: payment.status,
+        orderStatus: payment.orderId?.trackStatus,
+        createdAt: payment.createdAt,
+        invoicePDF: payment.invoicePDF || "",
+        adminCommissionPercentage,
+      };
+    })
+  );
 
   const totalLifeTimeSpentByCustomer = structuredReocrds.reduce(
     (total, payment) => total + payment.fullPaidAmount,
@@ -360,10 +381,108 @@ const PaymentRecords = async (user: JwtPayload, queryStatus: 'PENDING' | 'COMPLE
       user.role === USER_ROLES.USER
         ? structuredReocrds
         : user.role === USER_ROLES.SERVICE_PROVIDER
-          ? queryStatus == 'PENDING'
-            ? orderStatusIsPendingRecords
-            : orderStatusIsCompletedRecords
-          : structuredReocrds,
+        ? queryStatus == "PENDING"
+          ? orderStatusIsPendingRecords
+          : orderStatusIsCompletedRecords
+        : structuredReocrds,
+  };
+};
+
+const stripeLoginLink = async (payload: JwtPayload) => {
+  // Get the logged-in user's data (ensure the user is authenticated)
+  const userId = payload.userID;
+
+  // Retrieve the user's Stripe account information from the database
+  const user = await User.findById(userId).select("paymentCartDetails");
+  if (!user || !user.paymentCartDetails) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Stripe account not connected");
+  }
+
+  const stripeAccountId = user.paymentCartDetails;
+  const loginLink = await stripe.accounts.createLoginLink(stripeAccountId);
+  return loginLink.url;
+};
+
+const stripeTransactionsStatement = async (payload: JwtPayload) => {
+  // Get the logged-in user's data (ensure the user is authenticated)
+  const userId = payload.userID;
+
+  // Retrieve the user's Stripe account information from the database
+  const user = await User.findById(userId).select("paymentCartDetails");
+  if (!user || !user.paymentCartDetails) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Stripe account not connected");
+  }
+
+  const stripeAccountId = user.paymentCartDetails;
+
+  // Retrieve the balance of the connected account (for example, available funds)
+  const balance = await stripe.balance.retrieve({
+    stripeAccount: stripeAccountId,
+  });
+
+  // Retrieve the payouts or transactions for the connected account (e.g., payout history)
+  const payouts = await stripe.payouts.list(
+    { limit: 5 }, // You can adjust the number of results as needed
+    { stripeAccount: stripeAccountId }
+  );
+
+  // Retrieve the charges (payments) made to the account
+  const charges = await stripe.charges.list(
+    { limit: 5 }, // Adjust the limit as needed
+    { stripeAccount: stripeAccountId }
+  );
+
+  // Combine and send the data
+  return {
+    balance: balance.available,
+    payouts: payouts.data,
+    charges: charges.data,
+  };
+};
+
+const stripeTransactionsWithdraw = async (payload: JwtPayload, data: any) => {
+  const { amount, method = "instant" } = data;
+  if (!amount || isNaN(amount)) {
+    throw new ApiError(StatusCodes.BAD_REQUEST, "Amount is required");
+  }
+  // Get the logged-in user's data (ensure the user is authenticated)
+  const userId = payload.userID;
+
+  // Retrieve the user's Stripe account information from the database
+  const user = await User.findById(userId).select("paymentCartDetails");
+  if (!user || !user.paymentCartDetails) {
+    throw new ApiError(StatusCodes.NOT_FOUND, "Stripe account not connected");
+  }
+
+  const connectedStripeAccountId = user.paymentCartDetails;
+
+  // Ensure the connected account has sufficient balance
+  const balance = await stripe.balance.retrieve({
+    stripeAccount: connectedStripeAccountId,
+  });
+
+  const availableBalance = balance.available[0].amount;
+
+  if (availableBalance < amount) {
+    throw new ApiError(
+      StatusCodes.BAD_REQUEST,
+      "Insufficient funds for withdrawal"
+    );
+  }
+
+  // Create a payout (transfer funds to the external bank account or connected Stripe account)
+  const payout = await stripe.payouts.create(
+    {
+      amount: amount, // Amount in cents (e.g., $50 = 5000 cents)
+      currency: "usd",
+      method: method, // 'instant' or 'standard'
+    },
+    { stripeAccount: connectedStripeAccountId }
+  );
+
+  return {
+    message: "Withdrawal initiated successfully",
+    payout,
   };
 };
 
@@ -373,4 +492,7 @@ export const PaymentService = {
   verifyProvider,
   payoutToUser,
   PaymentRecords,
+  stripeLoginLink,
+  stripeTransactionsStatement,
+  stripeTransactionsWithdraw,
 };

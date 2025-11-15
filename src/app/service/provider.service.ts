@@ -377,6 +377,11 @@ const deliveryRequest = async (
     { deliveryRequest: true, requestID: delivaryRequest._id }
   );
 
+  await Notification.deleteMany(
+    { "data.orderId": isOrderExist._id },
+    { notiticationType: "DELIVERY_REQUEST" }
+  );
+
   const notification = await Notification.create({
     for: isOrderExist.customer,
     notiticationType: "DELIVERY_REQUEST",
@@ -721,7 +726,7 @@ const reqestAction = async (
   const budget = order.offerID.budget;
   const adminAmount = await makeAmountWithFee(
     Number(budget),
-    (order?.offerID?.projectID as any)?.adminCommissionPercentage || undefined
+    project?.adminCommissionPercentage || undefined
   );
 
   if (adminAmount > budget) {

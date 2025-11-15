@@ -2403,6 +2403,7 @@ const getPostsOrProviders = async ({
       isDeleted: false,
       isBlocked: false,
       isFlaggedAsInAppropriate: false,
+      acceptedOffer: null
     };
 
     if (category) {

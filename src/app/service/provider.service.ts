@@ -46,7 +46,7 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
   const order = (await Order.findById(orderID)
     .populate({
       path: "offerID",
-      select: "projectID startDate budget",
+      select: "projectID startDate budget endDate",
     })
     .populate("customer", "fullName")
     .populate({
@@ -89,7 +89,7 @@ const singleOrder = async (payload: JwtPayload, orderID: string) => {
     projectImage: projectDetails?.coverImage || "",
     projectID: projectDetails?._id || "",
     startDate: order.offerID.startDate,
-    deliveryDate: order.deliveryDate,
+    deliveryDate: order.offerID.endDate,
     providerName: order.provider.fullName,
     providerID: order.provider._id,
     extendedDate: order.isExtends.date,
